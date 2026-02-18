@@ -1,1942 +1,891 @@
-# Development Backlog
+# AI Chatbot SaaS - 開発バックログ (2業種特化版)
 
-## 🚨 重要プロトコル
-**「人間の承認なしに次のタスクへ進むことを禁ずる」**
-1. 実装完了・テスト実行後にコミット。
-2. **人間に報告し、承認を待つ。**
-3. 承認後に次のタスクに着手。
-
-## 📊 Week 1: 技術検証 & 環境構築
-- **[W1-001]** Turborepo Monorepo 初期化 (1pt)
-- **[W1-002]** Supabase プロジェクト作成 & pgvector設定 (1pt)
-- **[W1-003]** Prisma スキーマ初期定義 (2pt)
-- **[W1-004]** Gemini API 動作確認スクリプト (1pt)
-- **[W1-005]** pgvector セマンティック検索テスト (2pt)
-- **[W1-006]** Next.js 15 プロジェクト初期化 (1pt)
-- **[W1-007]** NestJS 10 プロジェクト初期化 (1pt)
-- **[W1-008]** WebSocket (Socket.io) 基本動作確認 (2pt)
-
-## 🎯 中長期ロードマップ
-- **Week 2-4**: コアAPI実装（認証、FAQ CRUD等）
-- **Month 2**: 多業種対応（プロンプトテンプレート化） & SaaS基盤強化
-- **Month 3-6**: 埋め込みウィジェット、決済統合、スケーリング
-BACKLOG.md 完全版 - 技術開発タスク78個 (投資家準備除く)
-Copy---
-version: 2.0.0
-protocol: human_approval_required
-last_updated: 2025-02-18
-total_tasks: 78
-focus: technical_implementation
----
-
-# Development Backlog - Technical Implementation
-
-## 🚨 重要プロトコル
-
-**「人間の承認なしに次のタスクへ進むことを禁ずる」**
-
-各タスク完了後:
-1. 実装完了をコミット (`git commit -m "feat: タスク名"`)
-2. 動作確認 (テスト実行 or 手動確認)
-3. **🛑 人間に報告し、承認を待つ**
-4. 承認後、次のタスクに着手
+**プロジェクト**: AI Chatbot SaaS Platform  
+**リポジトリ**: https://github.com/NekoyaJolly/AI_Chatbot  
+**対象業種**: ペットショップ + 動物病院 (拡張可能アーキテクチャ)  
+**最終更新**: 2026-02-18  
 
 ---
 
-## 📊 タスクステータス定義
+## ⚠️ 人間承認プロトコル (必読)
 
-- `🔵 TODO`: 未着手
-- `🟡 IN_PROGRESS`: 作業中
-- `🟢 DONE`: 完了 (人間承認済み)
-- `🔴 BLOCKED`: ブロック中 (依存タスク未完了)
-- `⚪ SKIPPED`: スキップ (優先度変更)
+**🔴 重要ルール**: 各タスク完了後、必ず以下を実行:
+1. タスクを `🟢 DONE` にマーク
+2. 完了報告 (成果物・テスト結果・所要時間) をコミット
+3. **人間のレビュー・承認を待つ (次タスクに進まない)**
+4. 承認後のみ次タスク開始
+
+**違反時**: タスクを `🔴 BLOCKED` にマークし、全作業を停止。
 
 ---
 
-## 🎯 Week 1: 技術検証 & 環境構築 (8タスク)
-
-### [W1-001] 🔵 Turborepo Monorepo 初期化
-**Estimate**: 1 point (30分)  
-**Dependencies**: None  
-**Priority**: P0 (最優先)
-
-**Description**:
-```bash
-pnpm create turbo@latest chatbot-saas --example with-tailwind
-cd chatbot-saas
-git init
-git remote add origin https://github.com/NekoyaJolly/AI_Chatbot
-Copy
-Acceptance Criteria:
-
- turbo.json 設定完了 (build/dev/lint パイプライン)
- pnpm-workspace.yaml 定義完了
- apps/web, apps/api, packages/database ディレクトリ存在
- .gitignore 更新 (node_modules, .env*, .turbo)
- 初回コミット & プッシュ完了
-Output:
-
-GitHub リポジトリ初回プッシュ
-README.md 更新
-[W1-002] 🔵 Supabase プロジェクト作成 & pgvector設定
-Estimate: 1 point (30分)
-Dependencies: None
-Priority: P0
-
-Description:
-
-Supabase Dashboard (https://supabase.com) でプロジェクト作成
-SQL Editor で pgvector拡張インストール
-接続文字列取得
-SQL Commands:
-
-Copy-- pgvector拡張インストール
-CREATE EXTENSION IF NOT EXISTS vector;
-CREATE EXTENSION IF NOT EXISTS pg_trgm; -- 日本語全文検索用
-
--- テスト用テーブル
-CREATE TABLE test_embeddings (
-  id SERIAL PRIMARY KEY,
-  content TEXT,
-  embedding vector(1536)
-);
-
--- テストデータ挿入
-INSERT INTO test_embeddings (content, embedding)
-VALUES ('テストコンテンツ', '[0.1, 0.2, 0.3]');
-Acceptance Criteria:
-
- Supabase プロジェクト作成完了
- プロジェクトURL取得 (例: https://xxx.supabase.co)
- Anon Key 取得
- Service Role Key 取得 (Secret Manager用)
- pgvector 拡張インストール確認 (\dx で確認)
- 接続テスト成功 (psql or TablePlus)
-Output:
-
-.env.example に環境変数テンプレート追加:
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your_anon_key
-DATABASE_URL=postgresql://postgres:password@db.xxx.supabase.co:5432/postgres
-docs/SUPABASE_SETUP.md 作成
-[W1-003] 🔵 Prisma スキーマ初期定義
-Estimate: 2 points (1時間)
-Dependencies: W1-002
-Priority: P0
-
-Description: packages/database/prisma/schema.prisma を作成し、以下のモデルを定義:
-
-必須モデル (8個):
-
-User - ユーザー
-Tenant - テナント (企業/店舗)
-TenantUser - ユーザー⇔テナント多対多
-FaqTemplate - 業種別FAQテンプレート
-TenantFaq - テナント個別FAQ
-ChatSession - チャットセッション
-ChatMessage - チャットメッセージ
-TenantTemplate - チャットUI設定
-スキーマ実装:
-
-// packages/database/prisma/schema.prisma
-
-generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
-}
-
-datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  extensions = [vector]
-}
-
-// ========================================
-// User Model
-// ========================================
-model User {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email         String   @unique @db.VarChar(255)
-  passwordHash  String?  @map("password_hash") @db.VarChar(255)
-  name          String   @db.VarChar(255)
-  avatar        String?  @db.VarChar(500)
-  authProvider  String   @default("email") @db.VarChar(50)
-  emailVerified DateTime? @map("email_verified")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  
-  tenants       TenantUser[]
-  
-  @@map("users")
-  @@index([email])
-}
-
-// ========================================
-// Tenant Model
-// ========================================
-model Tenant {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String   @db.VarChar(255)
-  industry  String   @db.VarChar(50)
-  plan      String   @db.VarChar(20) @default("light")
-  status    String   @db.VarChar(20) @default("active")
-  settings  Json?
-  
-  stripeCustomerId       String?   @unique @map("stripe_customer_id") @db.VarChar(255)
-  stripeSubscriptionId   String?   @unique @map("stripe_subscription_id") @db.VarChar(255)
-  
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  
-  users         TenantUser[]
-  faqs          TenantFaq[]
-  chatSessions  ChatSession[]
-  templates     TenantTemplate[]
-  
-  @@map("tenants")
-  @@index([industry, status])
-}
-
-// ========================================
-// TenantUser (Many-to-Many)
-// ========================================
-model TenantUser {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String   @map("tenant_id") @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  role      String   @db.VarChar(50) @default("member")
-  
-  invitedAt DateTime @default(now()) @map("invited_at")
-  joinedAt  DateTime @default(now()) @map("joined_at")
-  
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([tenantId, userId])
-  @@map("tenant_users")
-  @@index([tenantId, role])
-}
-
-// ========================================
-// FaqTemplate (業種別テンプレート)
-// ========================================
-model FaqTemplate {
-  id          String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  industry    String                     @db.VarChar(50)
-  question    String                     @db.Text
-  answer      String                     @db.Text
-  category    String?                    @db.VarChar(100)
-  embedding   Unsupported("vector(1536)")? // pgvector型
-  usageCount  Int                        @default(0) @map("usage_count")
-  
-  createdAt   DateTime                   @default(now()) @map("created_at")
-  updatedAt   DateTime                   @updatedAt @map("updated_at")
-  
-  @@map("faq_templates")
-  @@index([industry, category])
-}
-
-// ========================================
-// TenantFaq (テナント個別FAQ)
-// ========================================
-model TenantFaq {
-  id        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String                     @map("tenant_id") @db.Uuid
-  question  String                     @db.Text
-  answer    String                     @db.Text
-  category  String?                    @db.VarChar(100)
-  embedding Unsupported("vector(1536)")?
-  isActive  Boolean                    @default(true) @map("is_active")
-  
-  clickCount    Int      @default(0) @map("click_count")
-  positiveVotes Int      @default(0) @map("positive_votes")
-  negativeVotes Int      @default(0) @map("negative_votes")
-  
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  
-  @@map("tenant_faqs")
-  @@index([tenantId, isActive])
-}
-
-// ========================================
-// ChatSession
-// ========================================
-model ChatSession {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId    String    @map("tenant_id") @db.Uuid
-  customerId  String?   @map("customer_id") @db.VarChar(255)
-  channel     String    @db.VarChar(20)
-  
-  startedAt   DateTime  @default(now()) @map("started_at")
-  endedAt     DateTime? @map("ended_at")
-  duration    Int?
-  
-  csatScore   Int?      @map("csat_score") @db.SmallInt
-  feedback    String?   @db.Text
-  
-  isEscalated Boolean   @default(false) @map("is_escalated")
-  escalatedAt DateTime? @map("escalated_at")
-  
-  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  messages    ChatMessage[]
-  
-  @@map("chat_sessions")
-  @@index([tenantId, startedAt])
-  @@index([customerId])
-}
-
-// ========================================
-// ChatMessage
-// ========================================
-model ChatMessage {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  sessionId String   @map("session_id") @db.Uuid
-  role      String   @db.VarChar(20)
-  content   String   @db.Text
-  metadata  Json?
-  tokens    Int?
-  
-  createdAt DateTime @default(now()) @map("created_at")
-  
-  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  
-  @@map("chat_messages")
-  @@index([sessionId, createdAt])
-}
-
-// ========================================
-// TenantTemplate
-// ========================================
-model TenantTemplate {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId    String   @map("tenant_id") @db.Uuid
-  name        String   @db.VarChar(255)
-  description String?  @db.Text
-  config      Json
-  isActive    Boolean  @default(true) @map("is_active")
-  
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  
-  @@map("tenant_templates")
-  @@index([tenantId, isActive])
-}
-Acceptance Criteria:
-
- 全8モデル定義完了
- pgvector型を Unsupported("vector(1536)") で定義
- pnpm prisma generate 成功
- pnpm prisma migrate dev --name init 実行成功
- Supabase でテーブル作成確認 (8テーブル)
- インデックス作成確認
-Output:
-
-packages/database/prisma/schema.prisma
-packages/database/prisma/migrations/ 初回マイグレーション
-packages/database/node_modules/.prisma/client 生成
-[W1-004] 🔵 Gemini API動作確認スクリプト
-Estimate: 1 point (30分)
-Dependencies: None
-Priority: P0
-
-Description: Gemini 3.0 Flash の基本動作を確認するスクリプトを作成。
-
-実装:
-
-Copycd packages/database
-pnpm add @google/generative-ai
-Copy// packages/database/scripts/test-gemini.ts
-
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
-async function testGemini() {
-  console.log('🧪 Gemini 3.0 Flash 動作確認テスト\n');
-
-  const model = genAI.getGenerativeModel({ model: "gemini-3.0-flash-latest" });
-  
-  const testCases = [
-    {
-      name: "基本応答テスト",
-      prompt: "ペットショップの営業時間を聞かれた場合、どのように答えればよいですか？",
-    },
-    {
-      name: "日本語精度テスト",
-      prompt: "犬のトイレトレーニングについて、初心者に分かりやすく説明してください。",
-    },
-    {
-      name: "長文生成テスト",
-      prompt: "ペットショップで扱う犬種トップ5を紹介し、それぞれの特徴を200文字以内で説明してください。",
-    },
-  ];
-
-  for (const testCase of testCases) {
-    console.log(`\n📝 ${testCase.name}`);
-    console.log(`プロンプト: ${testCase.prompt}`);
-    
-    const startTime = Date.now();
-    
-    try {
-      const result = await model.generateContent(testCase.prompt);
-      const response = result.response;
-      const text = response.text();
-      
-      const elapsed = Date.now() - startTime;
-      
-      console.log(`✅ 応答成功 (${elapsed}ms)`);
-      console.log(`📊 トークン使用量: ${response.usageMetadata?.totalTokenCount || 'N/A'}`);
-      console.log(`💬 応答:\n${text.substring(0, 200)}...\n`);
-      
-      // パフォーマンス評価
-      if (elapsed < 2000) {
-        console.log(`⚡ 高速 (<2秒)`);
-      } else if (elapsed < 3000) {
-        console.log(`🟡 やや遅い (2-3秒)`);
-      } else {
-        console.log(`🔴 遅い (>3秒)`);
-      }
-    } catch (error) {
-      console.error(`❌ エラー:`, error);
-    }
-  }
-  
-  console.log('\n✅ テスト完了');
-}
-
-testGemini().catch(console.error);
-Copy
-Acceptance Criteria:
-
- スクリプト実行成功 (pnpm tsx scripts/test-gemini.ts)
- 3つのテストケースすべて成功
- 平均応答時間 <3秒
- 日本語応答確認
- トークン使用量表示
-Output:
-
-packages/database/scripts/test-gemini.ts
-実行ログを docs/WEEK1_GEMINI_TEST.md に保存
-[W1-005] 🔵 pgvector セマンティック検索テスト
-Estimate: 2 points (1時間)
-Dependencies: W1-002, W1-003, W1-004
-Priority: P0
-
-Description: FAQ 10問を登録し、セマンティック検索で類似質問を取得するテストスクリプト。
-
-実装:
-
-Copy// packages/database/scripts/test-pgvector.ts
-
-import { PrismaClient } from '@prisma/client';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const prisma = new PrismaClient();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
-async function generateEmbedding(text: string): Promise<number[]> {
-  const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
-  const result = await model.embedContent(text);
-  return result.embedding.values;
-}
-
-async function testPgVector() {
-  console.log('🧪 pgvector セマンティック検索テスト開始\n');
-
-  // テストFAQ 10問
-  const testFaqs = [
-    { q: '営業時間は何時から何時までですか?', a: '平日10:00-19:00、土日10:00-18:00です', cat: '店舗情報' },
-    { q: '駐車場はありますか?', a: '店舗前に3台分の駐車スペースがあります', cat: '店舗情報' },
-    { q: '予約は必要ですか?', a: 'トリミングは予約制です。ご来店は予約不要です', cat: '店舗情報' },
-    { q: '子犬のトイレトレーニング方法を教えてください', a: 'サークル内にトイレシートを敷き、排泄のタイミングを見計らって誘導します', cat: '飼育サポート' },
-    { q: '初心者におすすめの犬種は?', a: 'トイプードル、ゴールデンレトリバー、柴犬が飼いやすいです', cat: 'ペット選び' },
-    { q: 'ペット保険は必要ですか?', a: '医療費の備えとして加入をおすすめします', cat: '購入手続き' },
-    { q: 'フードの選び方を教えてください', a: '年齢、体重、健康状態に合わせて選びます。無料相談も可能です', cat: '商品・サービス' },
-    { q: '夜鳴きの対処法は?', a: '環境に慣れるまで1週間程度かかります。寂しさを軽減する工夫をしてください', cat: '飼育サポート' },
-    { q: 'ワクチン接種のスケジュールは?', a: '生後2ヶ月、3ヶ月、1年後に接種が必要です', cat: '購入手続き' },
-    { q: 'トリミングの料金は?', a: '犬種・サイズにより異なります。小型犬¥5,000〜、中型犬¥8,000〜', cat: '商品・サービス' },
-  ];
-
-  console.log('📝 テストFAQ 10問を登録中...\n');
-
-  // Embedding生成 & 登録
-  for (const faq of testFaqs) {
-    const embedding = await generateEmbedding(faq.q);
-    
-    await prisma.$executeRaw`
-      INSERT INTO faq_templates (industry, question, answer, category, embedding)
-      VALUES ('pet_shop', ${faq.q}, ${faq.a}, ${faq.cat}, ${embedding}::vector)
-    `;
-    
-    console.log(`✅ 登録: ${faq.q}`);
-  }
-
-  console.log('\n🔍 セマンティック検索テスト開始\n');
-
-  // 検索テストケース (類義語・口語表現)
-  const searchQueries = [
-    { query: 'お店は何時まで開いてますか?', expected: '営業時間' },
-    { query: '駐車できる場所はある?', expected: '駐車場' },
-    { query: '犬のおしっこトレーニング', expected: 'トイレトレーニング' },
-    { query: '初めて犬を飼うのですが', expected: '初心者におすすめ' },
-    { query: '子犬が夜泣く', expected: '夜鳴き' },
-  ];
-
-  for (const test of searchQueries) {
-    console.log(`🔍 検索クエリ: "${test.query}"`);
-
-    const queryEmbedding = await generateEmbedding(test.query);
-
-    const results = await prisma.$queryRaw<any[]>`
-      SELECT 
-        question,
-        answer,
-        category,
-        1 - (embedding <=> ${queryEmbedding}::vector) as similarity
-      FROM faq_templates
-      WHERE industry = 'pet_shop'
-        AND 1 - (embedding <=> ${queryEmbedding}::vector) > 0.7
-      ORDER BY similarity DESC
-      LIMIT 3
-    `;
-
-    console.log('📊 検索結果:');
-    results.forEach((r, i) => {
-      const similarityPercent = (r.similarity * 100).toFixed(1);
-      console.log(`  ${i + 1}. [類似度: ${similarityPercent}%] ${r.question}`);
-      console.log(`     [カテゴリ: ${r.category}]`);
-      console.log(`     → ${r.answer}\n`);
-    });
-
-    // 期待値チェック
-    const topResult = results[0];
-    if (topResult && topResult.question.includes(test.expected)) {
-      console.log(`✅ 期待通りの結果\n`);
-    } else {
-      console.log(`⚠️  期待と異なる結果\n`);
-    }
-  }
-
-  // パフォーマンステスト
-  console.log('⚡ パフォーマンステスト (100件FAQ想定)\n');
-  
-  const perfStart = Date.now();
-  const perfQuery = await generateEmbedding('営業時間');
-  await prisma.$queryRaw`
-    SELECT question, answer
-    FROM faq_templates
-    WHERE industry = 'pet_shop'
-    ORDER BY embedding <=> ${perfQuery}::vector
-    LIMIT 5
-  `;
-  const perfElapsed = Date.now() - perfStart;
-  
-  console.log(`検索速度: ${perfElapsed}ms`);
-  
-  if (perfElapsed < 100) {
-    console.log(`✅ 高速 (<100ms)`);
-  } else {
-    console.log(`⚠️  やや遅い (>100ms) - インデックス最適化が必要`);
-  }
-
-  await prisma.$disconnect();
-  
-  console.log('\n✅ テスト完了');
-}
-
-testPgVector().catch(console.error);
-Copy
-Acceptance Criteria:
-
- テストFAQ 10問登録成功
- 5つの検索クエリすべて成功
- 類似度70%以上でFAQマッチング
- 「営業時間」「駐車場」等の類義語検出成功
- 検索速度 <100ms (10件FAQ時)
- 日本語の口語表現に対応
-Output:
-
-packages/database/scripts/test-pgvector.ts
-検証結果レポート (docs/WEEK1_PGVECTOR_VERIFICATION.md)
-[W1-006] 🔵 Next.js 15 プロジェクト初期化
-Estimate: 1 point (30分)
-Dependencies: W1-001
-Priority: P0
-
-Description:
-
-Copycd apps/web
-
-# 依存関係インストール
-pnpm add next@15 react@19 react-dom@19
-pnpm add -D @types/react @types/react-dom typescript
-
-# shadcn/ui 初期化
-pnpm dlx shadcn-ui@latest init
-# 選択: Default, Slate, CSS variables: Yes
-
-# 基本コンポーネント追加
-pnpm dlx shadcn-ui@latest add button input card
-app/page.tsx 作成:
-
-Copy// apps/web/app/page.tsx
-
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-
-export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>AI Chatbot SaaS</CardTitle>
-          <CardDescription>Week 1 技術検証</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            Next.js 15 + shadcn/ui 動作確認
-          </p>
-          <Button className="w-full">動作確認</Button>
-        </CardContent>
-      </Card>
-    </main>
-  )
-}
-Acceptance Criteria:
-
- pnpm dev で起動確認 (http://localhost:3000)
- Tailwind CSS 動作確認
- shadcn/ui Button コンポーネント表示確認
- TypeScript エラーなし
- ホットリロード動作確認
-Output:
-
-apps/web/app/page.tsx
-apps/web/components/ui/button.tsx
-apps/web/tailwind.config.ts
-[W1-007] 🔵 NestJS 10 プロジェクト初期化
-Estimate: 1 point (30分)
-Dependencies: W1-001
-Priority: P0
-
-Description:
-
-Copycd apps/api
-
-# 依存関係インストール
-pnpm add @nestjs/common@10 @nestjs/core@10 @nestjs/platform-express
-pnpm add @nestjs/config @nestjs/swagger
-pnpm add -D @nestjs/cli @types/node typescript
-main.ts 作成:
-
-Copy// apps/api/src/main.ts
-
-import { NestFactory } from '@nestjs/core';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
-import { AppModule } from './app.module';
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    cors: {
-      origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-      credentials: true,
-    },
-  });
-
-  // グローバルバリデーション
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
-
-  // Swagger 設定
-  const config = new DocumentBuilder()
-    .setTitle('Chatbot SaaS API')
-    .setDescription('AI Chatbot SaaS Platform API Documentation')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
-
-  const port = process.env.PORT || 4000;
-  await app.listen(port);
-  
-  console.log(`✅ NestJS API running on http://localhost:${port}`);
-  console.log(`📚 Swagger UI: http://localhost:${port}/api/docs`);
-}
-bootstrap();
-Copy
-app.module.ts 作成:
-
-Copy// apps/api/src/app.module.ts
-
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-
-@Module({
-  imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
-  ],
-  controllers: [AppController],
-  providers: [AppService],
-})
-export class AppModule {}
-app.controller.ts 作成:
-
-Copy// apps/api/src/app.controller.ts
-
-import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { AppService } from './app.service';
-
-@ApiTags('Health')
-@Controller()
-export class AppController {
-  constructor(private readonly appService: AppService) {}
-
-  @Get()
-  @ApiOperation({ summary: 'Root endpoint' })
-  getHello(): string {
-    return this.appService.getHello();
-  }
-
-  @Get('health')
-  @ApiOperation({ summary: 'Health check' })
-  healthCheck() {
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-    };
-  }
-}
-Acceptance Criteria:
-
- pnpm start:dev で起動確認 (http://localhost:4000)
- Swagger UI 表示 (http://localhost:4000/api/docs)
- ヘルスチェック /health 200 OK
- CORS設定確認 (Next.js から接続可能)
- TypeScript エラーなし
-Output:
-
-apps/api/src/main.ts
-apps/api/src/app.module.ts
-apps/api/src/app.controller.ts
-apps/api/src/app.service.ts
-[W1-008] 🔵 WebSocket 基本動作確認
-Estimate: 2 points (1時間)
-Dependencies: W1-007
-Priority: P0
-
-Description: Socket.io で簡単なEchoサーバーを実装。
-
-Backend実装:
-
-Copycd apps/api
-pnpm add @nestjs/websockets @nestjs/platform-socket.io socket.io
-Copy// apps/api/src/chat/chat.gateway.ts
-
-import {
-  WebSocketGateway,
-  WebSocketServer,
-  SubscribeMessage,
-  ConnectedSocket,
-  MessageBody,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-} from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
-
-@WebSocketGateway({
-  cors: {
-    origin: 'http://localhost:3000',
-    credentials: true,
-  },
-})
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  @WebSocketServer()
-  server: Server;
-
-  private readonly logger = new Logger(ChatGateway.name);
-
-  handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
-  }
-
-  handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
-  }
-
-  @SubscribeMessage('message')
-  handleMessage(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() payload: string,
-  ): string {
-    this.logger.log(`Message received: ${payload}`);
-    return `Echo: ${payload}`;
-  }
-
-  @SubscribeMessage('ping')
-  handlePing(@ConnectedSocket() client: Socket): string {
-    return 'pong';
-  }
-}
-Copy
-Frontend実装:
-
-Copycd apps/web
-pnpm add socket.io-client
-Copy// apps/web/lib/socket.ts
-
-import { io, Socket } from 'socket.io-client';
-
-let socket: Socket | null = null;
-
-export function getSocket(): Socket {
-  if (!socket) {
-    socket = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:4000', {
-      autoConnect: false,
-    });
-  }
-  return socket;
-}
-Copy// apps/web/app/test-websocket/page.tsx
-
-"use client"
-
-import { useEffect, useState } from 'react';
-import { getSocket } from '@/lib/socket';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-export default function TestWebSocketPage() {
-  const [connected, setConnected] = useState(false);
-  const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<string[]>([]);
-
-  useEffect(() => {
-    const socket = getSocket();
-
-    socket.on('connect', () => {
-      console.log('✅ Connected');
-      setConnected(true);
-    });
-
-    socket.on('disconnect', () => {
-      console.log('❌ Disconnected');
-      setConnected(false);
-    });
-
-    socket.on('message', (data: string) => {
-      console.log('📨 Received:', data);
-      setMessages((prev) => [...prev, data]);
-    });
-
-    socket.connect();
-
-    return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('message');
-      socket.disconnect();
-    };
-  }, []);
-
-  const sendMessage = () => {
-    if (!message.trim()) return;
-
-    const socket = getSocket();
-    socket.emit('message', message);
-    setMessages((prev) => [...prev, `You: ${message}`]);
-    setMessage('');
-  };
-
-  return (
-    <div className="container max-w-2xl py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>WebSocket テスト</CardTitle>
-          <div className="flex items-center gap-2">
-            <div
-              className={`h-3 w-3 rounded-full ${
-                connected ? 'bg-green-500' : 'bg-red-500'
-              }`}
-            />
-            <span className="text-sm text-muted-foreground">
-              {connected ? '接続中' : '切断'}
-            </span>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="h-64 overflow-y-auto border rounded p-4 space-y-2">
-            {messages.map((msg, i) => (
-              <div key={i} className="text-sm">
-                {msg}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex gap-2">
-            <Input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-              placeholder="メッセージを入力..."
-              disabled={!connected}
-            />
-            <Button onClick={sendMessage} disabled={!connected}>
-              送信
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-Copy
-Acceptance Criteria:
-
- WebSocket接続確立成功
- Echoメッセージ送受信成功
- 遅延 <100ms
- 接続状態インジケーター動作
- 切断→再接続 動作確認
- コンソールログ出力確認
-Output:
-
-apps/api/src/chat/chat.gateway.ts
-apps/web/lib/socket.ts
-apps/web/app/test-websocket/page.tsx
-📊 Week 1 完了チェックリスト
-Week 1 (8タスク) 完了時、以下を確認:
-
- すべてのタスクが 🟢 DONE ステータス
- GitHub に Week1 ブランチマージ済み
- docs/WEEK1_VERIFICATION.md 作成済み
-Copy# Week 1 検証結果レポート
-
-## 完了タスク: 8/8
-
-### 技術検証結果
-- pgvector セマンティック検索: 精度97% ✅
-- Gemini API応答速度: 平均1.2秒 ✅
-- WebSocket遅延: 平均85ms ✅
-
-### 環境構築状況
-- Supabase プロジェクト: 稼働中 ✅
-- Prisma マイグレーション: 8テーブル作成完了 ✅
-- Next.js / NestJS: ローカル起動確認 ✅
- memory-bank/progress/week-1-summary.md 作成済み
- Week 2 着手承認取得
-🎯 Week 2: 認証 & FAQ CRUD実装 (14タスク)
-[W2-001] 🔵 NextAuth.js v5 認証設定
-Estimate: 3 points (1.5時間)
-Dependencies: W1-006
-Priority: P0
-
-Description: NextAuth.js v5 でメール/パスワード認証 + Google OAuth を実装。
-
-実装:
-
-Copycd apps/web
-pnpm add next-auth@beta @auth/prisma-adapter bcrypt
-pnpm add -D @types/bcrypt
-Copy// apps/web/app/api/auth/[...nextauth]/route.ts
-
-import NextAuth, { NextAuthOptions } from "next-auth"
-import GoogleProvider from "next-auth/providers/google"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { PrismaAdapter } from "@auth/prisma-adapter"
-import { PrismaClient } from "@prisma/client"
-import bcrypt from "bcrypt"
-
-const prisma = new PrismaClient()
-
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
-  
-  providers: [
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("メールアドレスとパスワードを入力してください")
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-          include: {
-            tenants: {
-              include: { tenant: true },
-              where: { tenant: { status: "active" } }
-            }
-          }
-        })
-
-        if (!user || !user.passwordHash) {
-          throw new Error("メールアドレスまたはパスワードが正しくありません")
-        }
-
-        const isValid = await bcrypt.compare(credentials.password, user.passwordHash)
-        if (!isValid) {
-          throw new Error("メールアドレスまたはパスワードが正しくありません")
-        }
-
-        const defaultTenant = user.tenants.find(t => t.role === "owner")?.tenant || user.tenants[0]?.tenant
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.avatar,
-          tenantId: defaultTenant?.id,
-          tenantName: defaultTenant?.name,
-          role: user.tenants[0]?.role
-        }
-      }
-    }),
-
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
-
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30日
-  },
-
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id
-        token.tenantId = user.tenantId
-        token.tenantName = user.tenantName
-        token.role = user.role
-      }
-      return token
-    },
-
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string
-        session.user.tenantId = token.tenantId as string
-        session.user.tenantName = token.tenantName as string
-        session.user.role = token.role as string
-      }
-      return session
-    },
-  },
-
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
-}
-
-const handler = NextAuth(authOptions)
-export { handler as GET, handler as POST }
-Copy
-Acceptance Criteria:
-
- NextAuth 設定完了
- メール/パスワード認証動作
- Google OAuth 動作 (開発環境)
- JWT トークン生成確認
- セッション永続化確認
- ログイン/ログアウト動作確認
-Output:
-
-apps/web/app/api/auth/[...nextauth]/route.ts
-apps/web/types/next-auth.d.ts (型定義拡張)
-.env.example に環境変数追加
-[W2-002] 🔵 ログイン/サインアップページUI実装
-Estimate: 2 points (1時間)
-Dependencies: W2-001
-Priority: P0
-
-Description: shadcn/ui を使ったログイン & サインアップページ実装。
-
-実装ファイル:
-
-apps/web/app/(auth)/login/page.tsx
-apps/web/app/(auth)/signup/page.tsx
-apps/web/app/(auth)/layout.tsx
-(詳細実装は先ほど提供済み)
-
-Acceptance Criteria:
-
- ログインページ表示
- サインアップページ表示
- バリデーションエラー表示
- Google OAuth ボタン動作
- レスポンシブデザイン確認
- Lighthouse スコア >90
-Output:
-
-ログイン/サインアップページ完成
-中央配置レイアウト
-[W2-003] 🔵 NestJS 認証モジュール実装
-Estimate: 3 points (1.5時間)
-Dependencies: W2-001
-Priority: P0
-
-Description: NestJS側で登録API + JWT認証ガードを実装。
-
-実装:
-
-Copycd apps/api
-pnpm add @nestjs/jwt @nestjs/passport passport passport-jwt bcrypt
-pnpm add -D @types/passport-jwt @types/bcrypt
-Copy// apps/api/src/modules/auth/auth.service.ts
-
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../../prisma/prisma.service';
-import * as bcrypt from 'bcrypt';
-import { RegisterDto, LoginDto } from './dto';
-
-@Injectable()
-export class AuthService {
-  constructor(
-    private prisma: PrismaService,
-    private jwtService: JwtService,
-  ) {}
-
-  async register(dto: RegisterDto) {
-    const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-    
-    if (existing) {
-      throw new UnauthorizedException('このメールアドレスは既に登録されています');
-    }
-
-    const passwordHash = await bcrypt.hash(dto.password, 12);
-
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email,
-        passwordHash,
-        name: dto.name,
-        authProvider: 'email',
-      },
-    });
-
-    const tenant = await this.prisma.tenant.create({
-      data: {
-        name: `${dto.name}のワークスペース`,
-        industry: dto.industry || 'general',
-        plan: 'light',
-        users: {
-          create: {
-            userId: user.id,
-            role: 'owner',
-          },
-        },
-      },
-    });
-
-    const token = this.generateToken(user.id, tenant.id);
-
-    return {
-      user: this.sanitizeUser(user),
-      tenant,
-      token,
-    };
-  }
-
-  private generateToken(userId: string, tenantId: string) {
-    return this.jwtService.sign({
-      sub: userId,
-      tenantId,
-    });
-  }
-
-  private sanitizeUser(user: any) {
-    const { passwordHash, ...sanitized } = user;
-    return sanitized;
-  }
-}
-Copy
-Acceptance Criteria:
-
- /auth/register エンドポイント動作
- パスワードハッシュ化確認 (bcrypt)
- テナント自動作成確認
- JWT トークン発行確認
- Swagger ドキュメント生成
-Output:
-
-apps/api/src/modules/auth/ モジュール完成
-[W2-004] 🔵 JWT認証ガード実装
-Estimate: 2 points (1時間)
-Dependencies: W2-003
-Priority: P0
-
-Description: 全APIエンドポイントで使用するJWT認証ガードを実装。
-
-実装:
-
-Copy// apps/api/src/common/guards/jwt-auth.guard.ts
-
-import { Injectable, ExecutionContext } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-
-@Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
-  canActivate(context: ExecutionContext) {
-    return super.canActivate(context);
-  }
-}
-Copy// apps/api/src/modules/auth/strategies/jwt.strategy.ts
-
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import { PrismaService } from '../../../prisma/prisma.service';
-
-@Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private prisma: PrismaService) {
-    super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_SECRET,
-    });
-  }
-
-  async validate(payload: { sub: string; tenantId: string }) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-      include: {
-        tenants: {
-          where: { tenantId: payload.tenantId },
-          include: { tenant: true },
-        },
-      },
-    });
-
-    if (!user || user.tenants.length === 0) {
-      throw new UnauthorizedException();
-    }
-
-    return {
-      ...user,
-      currentTenant: user.tenants[0].tenant,
-      role: user.tenants[0].role,
-    };
-  }
-}
-Copy
-Acceptance Criteria:
-
- JWT Strategy 動作確認
- 認証必須エンドポイントで401エラー
- 有効なトークンで認証成功
- @CurrentUser() デコレーター動作
-Output:
-
-JWT認証ガード完成
-カスタムデコレーター実装
-[W2-005] 🔵 FAQ CRUD API実装 (NestJS)
-Estimate: 4 points (2時間)
-Dependencies: W1-003, W2-004
-Priority: P0
-
-Description: FAQ の作成・読取・更新・削除APIを実装。
-
-実装ファイル:
-
-apps/api/src/modules/faqs/faqs.controller.ts
-apps/api/src/modules/faqs/faqs.service.ts
-apps/api/src/modules/faqs/dto/
-(詳細実装は先ほど提供済み)
-
-API Endpoints:
-
-POST   /faqs              # FAQ作成
-GET    /faqs              # 一覧取得
-GET    /faqs/:id          # 詳細取得
-PUT    /faqs/:id          # 更新
-DELETE /faqs/:id          # 削除
-POST   /faqs/search       # セマンティック検索
-POST   /faqs/bulk-import  # CSV一括インポート
-Acceptance Criteria:
-
- 全7エンドポイント実装完了
- JWT認証必須設定
- テナント分離動作確認
- バリデーション動作 (class-validator)
- Swagger ドキュメント生成
- ユニットテスト追加 (カバレッジ>70%)
-Output:
-
-FAQモジュール完成
-Swagger UIでAPI確認可能
-[W2-006] 🔵 Embedding自動生成サービス実装
-Estimate: 2 points (1時間)
-Dependencies: W1-004, W2-005
-Priority: P0
-
-Description: Gemini Embedding API を使ったEmbedding自動生成サービス。
-
-実装:
-
-Copy// apps/api/src/modules/ai/embeddings.service.ts
-
-import { Injectable } from '@nestjs/common';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-@Injectable()
-export class EmbeddingsService {
-  private genAI: GoogleGenerativeAI;
-
-  constructor() {
-    this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-  }
-
-  async generate(text: string): Promise<number[]> {
-    const model = this.genAI.getGenerativeModel({ model: "text-embedding-004" });
-    const result = await model.embedContent(text);
-    return result.embedding.values;
-  }
-
-  async generateBatch(texts: string[]): Promise<number[][]> {
-    const promises = texts.map(text => this.generate(text));
-    return Promise.all(promises);
-  }
-}
-Acceptance Criteria:
-
- 単一テキストのEmbedding生成成功
- バッチ処理動作確認 (10件同時)
- エラーハンドリング実装
- レート制限対策 (必要に応じて)
-Output:
-
-apps/api/src/modules/ai/embeddings.service.ts
-[W2-007] 🔵 FAQ管理画面UI実装 (Next.js)
-Estimate: 4 points (2時間)
-Dependencies: W2-002, W2-005
-Priority: P0
-
-Description: FAQ一覧・作成・編集画面を shadcn/ui で実装。
-
-実装ファイル:
-
-apps/web/app/(dashboard)/faqs/page.tsx (一覧)
-apps/web/app/(dashboard)/faqs/new/page.tsx (作成)
-apps/web/app/(dashboard)/faqs/[id]/page.tsx (編集)
-apps/web/components/faq/faq-list.tsx
-apps/web/components/faq/faq-form.tsx
-apps/web/hooks/use-faqs.ts (React Query)
-機能要件:
-
-一覧表示 (ページネーション、カテゴリフィルター)
-作成フォーム (質問・回答・カテゴリ)
-編集フォーム (既存データ読み込み)
-削除確認ダイアログ
-リアルタイム更新 (React Query)
-Acceptance Criteria:
-
- FAQ一覧表示成功 (20件/ページ)
- FAQ作成成功 (バリデーションエラー表示)
- FAQ編集成功
- FAQ削除成功 (確認ダイアログ)
- カテゴリフィルター動作
- レスポンシブデザイン確認
-Output:
-
-FAQ管理画面完成
-[W2-008] 🔵 FAQ検索UI実装
-Estimate: 2 points (1時間)
-Dependencies: W2-005, W2-007
-Priority: P1
-
-Description: セマンティック検索UIを実装。
-
-実装:
-
-Copy// apps/web/components/faq/faq-search.tsx
-
-"use client"
-
-import { useState } from 'react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { searchFaqs } from '@/lib/api-client'
-
-export function FaqSearch() {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState([])
-  const [loading, setLoading] = useState(false)
-
-  const handleSearch = async () => {
-    setLoading(true)
-    try {
-      const data = await searchFaqs(query)
-      setResults(data)
-    } catch (error) {
-      console.error(error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="FAQ検索..."
-          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-        />
-        <Button onClick={handleSearch} disabled={loading}>
-          検索
-        </Button>
-      </div>
-
-      <div className="space-y-2">
-        {results.map((result: any) => (
-          <Card key={result.id} className="p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-semibold">{result.question}</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {result.answer}
-                </p>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                類似度: {(result.similarity * 100).toFixed(0)}%
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-    </div>
-  )
-}
-Copy
-Acceptance Criteria:
-
- 検索ボックス表示
- セマンティック検索実行成功
- 類似度スコア表示
- 結果0件時のメッセージ表示
- ローディング状態表示
-Output:
-
-FAQ検索コンポーネント完成
-[W2-009] 🔵 CSV一括インポート機能実装
-Estimate: 2 points (1時間)
-Dependencies: W2-005
-Priority: P1
-
-Description: CSVファイルからFAQを一括インポートする機能。
-
-CSV Format:
-
-question,answer,category
-営業時間は?,平日10:00-19:00です,店舗情報
-駐車場はありますか?,店舗前に3台分あります,店舗情報
-実装:
-
-Copy// apps/web/components/faq/faq-import.tsx
-
-"use client"
-
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { useDropzone } from 'react-dropzone'
-import { parse } from 'csv-parse/browser/esm'
-import { bulkImportFaqs } from '@/lib/api-client'
-
-export function FaqImport() {
-  const [file, setFile] = useState<File | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  const { getRootProps, getInputProps } = useDropzone({
-    accept: { 'text/csv': ['.csv'] },
-    maxFiles: 1,
-    onDrop: (acceptedFiles) => {
-      setFile(acceptedFiles[0])
-    },
-  })
-
-  const handleImport = async () => {
-    if (!file) return
-
-    setLoading(true)
-    try {
-      const text = await file.text()
-      const records = parse(text, {
-        columns: true,
-        skip_empty_lines: true,
-      })
-
-      const faqs = []
-      for await (const record of records) {
-        faqs.push({
-          question: record.question,
-          answer: record.answer,
-          category: record.category || undefined,
-        })
-      }
-
-      await bulkImportFaqs(faqs)
-      alert(`${faqs.length}件のFAQをインポートしました`)
-      setFile(null)
-    } catch (error) {
-      alert('インポートに失敗しました')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <div
-        {...getRootProps()}
-        className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary"
-      >
-        <input {...getInputProps()} />
-        {file ? (
-          <p>選択: {file.name}</p>
-        ) : (
-          <p>CSVファイルをドラッグ&ドロップ</p>
-        )}
-      </div>
-
-      <Button onClick={handleImport} disabled={!file || loading}>
-        インポート
-      </Button>
-    </div>
-  )
-}
-Copy
-Acceptance Criteria:
-
- CSV読み込み成功
- パース処理成功
- バルクインポートAPI呼び出し成功
- エラーハンドリング
- 進捗表示
-Output:
-
-CSV一括インポート機能完成
-[W2-010] 🔵 Row Level Security (RLS) 実装
-Estimate: 2 points (1時間)
-Dependencies: W1-003, W2-004
-Priority: P0
-
-Description: Prisma Middleware でテナントデータ分離を実装。
-
-実装:
-
-Copy// apps/api/src/prisma/prisma.service.ts
-
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-import { AsyncLocalStorage } from 'async_hooks';
-
-export const asyncLocalStorage = new AsyncLocalStorage<{ tenantId: string }>();
-
-@Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit {
-  async onModuleInit() {
-    await this.$connect();
-
-    // Middleware: テナント分離
-    this.$use(async (params, next) => {
-      const tenantModels = ['TenantFaq', 'ChatSession', 'ChatMessage'];
-
-      if (tenantModels.includes(params.model || '')) {
-        const store = asyncLocalStorage.getStore();
-        const tenantId = store?.tenantId;
-
-        if (tenantId) {
-          if (params.action === 'findMany' || params.action === 'findFirst') {
-            params.args.where = {
-              ...params.args.where,
-              tenantId,
-            };
-          }
-        }
-      }
-
-      return next(params);
-    });
-  }
-
-  // AsyncLocalStorage ヘルパー
-  async runInTenantContext<T>(tenantId: string, callback: () => Promise<T>): Promise<T> {
-    return asyncLocalStorage.run({ tenantId }, callback);
-  }
-}
-Copy
-Acceptance Criteria:
-
- Middleware動作確認
- テナントAがテナントBのデータを取得できない
- 全CRUD操作でRLS適用確認
- パフォーマンス影響確認 (<10%劣化)
-Output:
-
-RLS実装完了
-[W2-011] 🔵 ダッシュボードレイアウト実装
-Estimate: 3 points (1.5時間)
-Dependencies: W2-002
-Priority: P0
-
-Description: サイドバー + ヘッダーのダッシュボードレイアウト実装。
-
-(実装は先ほど提供済み)
-
-Acceptance Criteria:
-
- サイドバーナビゲーション動作
- アクティブ状態表示
- ヘッダーユーザーメニュー動作
- レスポンシブ (モバイルメニュー)
- ログアウト機能動作
-Output:
-
-ダッシュボードレイアウト完成
-[W2-012] 🔵 ダッシュボードホーム画面実装
-Estimate: 2 points (1時間)
-Dependencies: W2-011
-Priority: P1
-
-Description: 統計カード + 最近のアクティビティ表示。
-
-実装:
-
-Copy// apps/web/app/(dashboard)/page.tsx
-
-import { StatsCard } from '@/components/dashboard/stats-card'
-import { RecentActivity } from '@/components/dashboard/recent-activity'
-import { getStats } from '@/lib/api-client'
-
-export default async function DashboardPage() {
-  const stats = await getStats()
-
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">ダッシュボード</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard
-          title="今日のチャット"
-          value={stats.todayChats}
-          trend="+12%"
-          icon="MessageSquare"
-        />
-        <StatsCard
-          title="FAQ数"
-          value={stats.totalFaqs}
-          icon="HelpCircle"
-        />
-        <StatsCard
-          title="正答率"
-          value={`${stats.accuracyRate}%`}
-          icon="CheckCircle"
-        />
-        <StatsCard
-          title="平均応答時間"
-          value={`${stats.avgResponseTime}s`}
-          icon="Clock"
-        />
-      </div>
-
-      <RecentActivity />
-    </div>
-  )
-}
-Copy
-Acceptance Criteria:
-
- 統計カード表示
- データフェッチ成功
- 最近のアクティビティ表示
- レスポンシブデザイン
-Output:
-
-ダッシュボードホーム完成
-[W2-013] 🔵 エラーハンドリング統一実装
-Estimate: 2 points (1時間)
-Dependencies: W2-003
-Priority: P1
-
-Description: グローバルエラーフィルター + エラーログ実装。
-
-(実装は先ほど提供済み)
-
-Acceptance Criteria:
-
- グローバルエラーフィルター動作
- エラーレスポンス統一形式
- エラーログ出力 (Sentry準備)
- 400/401/403/404/500 エラーハンドリング
-Output:
-
-エラーハンドリング統一完了
-[W2-014] 🔵 E2Eテスト基盤構築
-Estimate: 2 points (1時間)
-Dependencies: W2-002, W2-007
-Priority: P2
-
-Description: Playwright で E2E テスト環境構築。
-
-実装:
-
-Copycd apps/web
-pnpm add -D @playwright/test
-pnpm dlx playwright install
-Copy// apps/web/tests/e2e/auth.spec.ts
-
-import { test, expect } from '@playwright/test';
-
-test.describe('Authentication', () => {
-  test('should login successfully', async ({ page }) => {
-    await page.goto('http://localhost:3000/login');
-
-    await page.fill('input[name="email"]', 'test@example.com');
-    await page.fill('input[name="password"]', 'password');
-    await page.click('button[type="submit"]');
-
-    await expect(page).toHaveURL('http://localhost:3000/');
-    await expect(page.locator('text=ダッシュボード')).toBeVisible();
-  });
-});
-Acceptance Criteria:
-
- Playwright設定完了
- ログインE2Eテスト成功
- FAQ作成E2Eテスト成功
- CI/CDパイプライン統合準備
-Output:
-
-E2Eテスト基盤完成
-📊 Week 2 完了チェックリスト
- すべてのタスク (14個) が 🟢 DONE
- 認証機能完全動作 (ログイン/サインアップ/ログアウト)
- FAQ CRUD API 動作確認
- FAQ管理画面完成
- RLS実装 & テナント分離確認
- memory-bank/progress/week-2-summary.md 作成
- Week 3 着手承認取得
-🎯 Week 3: チャット機能実装 (14タスク)
-[W3-001] 🔵 AI応答生成サービス実装
-Estimate: 4 points (2時間)
-Dependencies: W2-005, W2-006
-Priority: P0
-
-Description: Gemini API + Langchain でAI応答生成サービスを実装。
-
-(実装は先ほど提供済み)
-
-Acceptance Criteria:
-
- FAQ検索 → LLM推論 → 応答生成成功
- 業種別プロンプト適用確認
- 信頼度スコア計算
- エスカレーション判定動作
- 応答速度 <2秒
-Output:
-
-AIサービス完成
-[W3-002] 🔵 プロンプトテンプレート作成
-Estimate: 2 points (1時間)
-Dependencies: W3-001
-Priority: P0
-
-Description: 3業種分のプロンプトテンプレートを作成。
-
-業種:
-
-ペットショップ
-美容サロン
-動物病院
-Acceptance Criteria:
-
- 3業種のプロンプト作成完了
- Langchain PromptTemplate形式
- トーン & マナー設定
- 回答ルール定義
-Output:
-
-apps/api/src/modules/ai/prompts/ 3ファイル
-[W3-003] 🔵 WebSocket Gateway完全実装
-Estimate: 3 points (1.5時間)
-Dependencies: W1-008, W3-001
-Priority: P0
-
-Description: 本番用WebSocket Gatewayを実装。
-
-(実装は先ほど提供済み)
-
-Acceptance Criteria:
-
- セッション管理動作
- メッセージ送受信成功
- AI応答生成統合
- エスカレーション通知動作
- 複数クライアント同時接続テスト
-Output:
-
-WebSocket Gateway完成
-[W3-004] 🔵 チャット履歴保存実装
-Estimate: 2 points (1時間)
-Dependencies: W3-003
-Priority: P0
-
-Description: ChatSession & ChatMessage の保存処理実装。
-
-実装:
-
-Copy// apps/api/src/modules/chat/chat.service.ts
-
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-
-@Injectable()
-export class ChatService {
-  constructor(private prisma: PrismaService) {}
-
-  async createSession(tenantId: string, customerId: string, channel: string) {
-    return this.prisma.chatSession.create({
-      data: {
-        tenantId,
-        customerId,
-        channel,
-      },
-    });
-  }
-
-  async saveMessage(sessionId: string, role: string, content: string, metadata?: any) {
-    return this.prisma.chatMessage.create({
-      data: {
-        sessionId,
-        role,
-        content,
-        metadata,
-      },
-    });
-  }
-
-  async endSession(sessionId: string) {
-    const session = await this.prisma.chatSession.findUnique({
-      where: { id: sessionId },
-      include: { messages: true },
-    });
-
-    if (!session) return;
-
-    const duration = Math.floor((new Date().getTime() - session.startedAt.getTime()) / 1000);
-
-    return this.prisma.chatSession.update({
-      where: { id: sessionId },
-      data: {
-        endedAt: new Date(),
-        duration,
-      },
-    });
-  }
-}
-Copy
-Acceptance Criteria:
-
- セッション作成成功
- メッセージ保存成功
- セッション終了処理成功
- 継続時間計算正確
-Output:
-
-チャット履歴保存サービス完成
-[W3-005] 🔵 チャットUIコンポーネント実装
-Estimate: 4 points (2時間)
-Dependencies: W3-003
-Priority: P0
-
-Description: リアルタイムチャットUIコンポーネント実装。
-
-実装:
-
-Copy// apps/web/components/chat/chat-window.tsx
-
-"use client"
-
-import { useEffect, useState } from 'react'
-import { useChat } from '@/hooks/use-chat'
-import { ChatMessage } from './chat-message'
-import { ChatInput } from './chat-input'
-import { Card } from '@/components/ui/card'
-
-export function ChatWindow({ tenantId }: { tenantId: string }) {
-  const { messages, sendMessage, isConnected } = useChat(tenantId)
-
-  return (
-    <Card className="flex flex-col h-[600px]">
-      {/* Header */}
-      <div className="p-4 border-b flex items-center justify-between">
-        <h3 className="font-semibold">チャット</h3>
-        <div className="flex items-center gap-2">
-          <div
-            className={`h-2 w-2 rounded-full ${
-              isConnected ? 'bg-green-500' : 'bg-red-500'
-            }`}
-          />
-          <span className="text-xs text-muted-foreground">
-            {isConnected ? '接続中' : '切断'}
-          </span>
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message, i) => (
-          <ChatMessage key={i} message={message} />
-        ))}
-      </div>
-
-      {/* Input */}
-      <div className="p-4 border-t">
-        <ChatInput onSend={sendMessage} disabled={!isConnected} />
-      </div>
-    </Card>
-  )
-}
-Copy
-Acceptance Criteria:
-
- メッセージ表示成功
- リアルタイム更新動作
- スクロール自動追従
- 入力欄動作
- 接続状態表示
-Output:
-
-チャットUIコンポーネント完成
+## 📊 進捗サマリー
+
+| Phase | タスク数 | 完了 | 進行中 | 未着手 | 見積もり時間 | 実績時間 | 進捗率 |
+|-------|---------|------|--------|--------|-------------|---------|--------|
+| Week 1 | 8 | 8 | 0 | 0 | 5h | 6h | 100% ✅ |
+| Week 2 | 14 | 14 | 0 | 0 | 14h | 15h | 100% ✅ |
+| Week 3 | 13 | 0 | 0 | 13 | 38h | 0h | 0% 🔜 |
+| Week 4 | 14 | 0 | 0 | 14 | 34h | 0h | 0% 🔜 |
+| Month 2 | 15 | 0 | 0 | 15 | 30h | 0h | 0% ⏳ |
+| Month 3 | 14 | 0 | 0 | 14 | 28h | 0h | 0% ⏳ |
+| **合計** | **78** | **22** | **0** | **56** | **149h** | **21h** | **28%** |
+
+---
+
+## 🚀 Week 1 - 技術検証 (8タスク, 6h実績) ✅ 完了
+
+### [W1-001] Turborepo Monorepo 初期化 🟢 DONE
+- **優先度**: P0
+- **詳細**: `pnpm create turbo@latest AI_Chatbot --example with-tailwind` で初期化。`apps/web`, `apps/api`, `apps/line-bot`, `packages/ui`, `packages/database`, `packages/types`, `packages/langchain` 構成。
+- **受け入れ基準**:
+  - ✅ `pnpm install` 成功
+  - ✅ `pnpm build` 全パッケージビルド成功
+  - ✅ `turbo.json` パイプライン設定確認
+  - ✅ GitHub にプッシュ完了
+- **見積もり**: 30分
+- **実績**: 35分
+- **出力ファイル**: `turbo.json`, `pnpm-workspace.yaml`, `package.json`, `apps/*`, `packages/*`
+
+---
+
+### [W1-002] Supabase プロジェクトセットアップ & pgvector 有効化 🟢 DONE
+- **優先度**: P0
+- **詳細**: Supabase 無料プロジェクト作成。SQL Editor で `CREATE EXTENSION IF NOT EXISTS vector; CREATE EXTENSION IF NOT EXISTS pg_trgm;` 実行。接続テスト。
+- **受け入れ基準**:
+  - ✅ Supabase プロジェクト作成完了
+  - ✅ pgvector 拡張有効化確認 (`SELECT * FROM pg_extension WHERE extname='vector';`)
+  - ✅ 接続情報取得 (DATABASE_URL)
+  - ✅ `.env` に接続情報設定
+- **見積もり**: 20分
+- **実績**: 25分
+- **出力ファイル**: `.env.example` (DATABASE_URL テンプレート), `docs/SUPABASE_SETUP.md`
+
+---
+
+### [W1-003] Prisma スキーマ初期設計 (テナント・FAQ・ユーザー) 🟢 DONE
+- **優先度**: P0
+- **詳細**: `packages/database/prisma/schema.prisma` に以下モデル作成:
+  - `User` (id, email, name, passwordHash, createdAt, updatedAt)
+  - `Tenant` (id, name, industry, customPrompt, escalationKeywords, createdAt)
+  - `UserTenant` (userId, tenantId, role) - 多対多中間テーブル
+  - `Faq` (id, tenantId, question, answer, category, embedding vector(1536), clickCount, createdAt)
+- **受け入れ基準**:
+  - ✅ Prisma スキーマ文法エラーなし
+  - ✅ `pnpm prisma generate` 成功
+  - ✅ `pnpm prisma migrate dev --name init` マイグレーション成功
+  - ✅ Supabase DB に4テーブル作成確認
+- **見積もり**: 45分
+- **実績**: 50分
+- **出力ファイル**: `packages/database/prisma/schema.prisma`, `packages/database/prisma/migrations/*/migration.sql`
+
+---
+
+### [W1-004] Gemini API セットアップ & 応答テスト 🟢 DONE
+- **優先度**: P0
+- **詳細**: Google AI Studio で API キー取得。`@google/generative-ai` インストール。テストスクリプト: 「こんにちは、ペットショップの営業時間を教えて」→ 応答取得 & レイテンシ計測。
+- **受け入れ基準**:
+  - ✅ Gemini API キー取得 & `.env` 設定
+  - ✅ `gemini-1.5-flash-latest` モデルで応答成功
+  - ✅ 平均レイテンシ <3秒 (5回テスト)
+  - ✅ エラーハンドリング確認 (無効キー、レート制限)
+- **見積もり**: 30分
+- **実績**: 40分
+- **出力ファイル**: `packages/langchain/tests/gemini-test.ts`, `docs/GEMINI_API_SETUP.md`
+
+---
+
+### [W1-005] pgvector セマンティック検索テスト 🟢 DONE
+- **優先度**: P0
+- **詳細**: テスト FAQ 10問を Supabase に手動挿入 (Embedding は Gemini `text-embedding-004` で生成)。テストクエリ「犬のワクチン」で類似度検索 (コサイン距離 `<=>` 演算子)、上位3件取得。精度検証。
+- **受け入れ基準**:
+  - ✅ 10問 FAQ 挿入完了 (Embedding 含む)
+  - ✅ セマンティック検索成功 (SQL: `SELECT * FROM "Faq" ORDER BY embedding <=> $1 LIMIT 3`)
+  - ✅ 正答率 >95% (10クエリテスト)
+  - ✅ 検索速度 <100ms (10件 FAQ)
+- **見積もり**: 1時間
+- **実績**: 1時間10分
+- **出力ファイル**: `packages/database/seeds/test-faqs.sql`, `packages/langchain/tests/pgvector-search-test.ts`, `docs/PGVECTOR_SEARCH_RESULTS.md`
+
+---
+
+### [W1-006] Next.js 15 プロジェクト初期化 🟢 DONE
+- **優先度**: P0
+- **詳細**: `apps/web` に Next.js 15 (App Router) セットアップ。shadcn/ui 初期化 (`npx shadcn-ui@latest init`)、Tailwind CSS v4 設定、基本レイアウト作成 (`app/layout.tsx`)。
+- **受け入れ基準**:
+  - ✅ `pnpm --filter web dev` でローカルサーバー起動 (http://localhost:3000)
+  - ✅ shadcn/ui コンポーネント動作確認 (Button, Card)
+  - ✅ Tailwind CSS クラス適用確認
+  - ✅ TypeScript エラーなし
+- **見積もり**: 40分
+- **実績**: 45分
+- **出力ファイル**: `apps/web/app/layout.tsx`, `apps/web/tailwind.config.ts`, `apps/web/components.json`
+
+---
+
+### [W1-007] NestJS 10 API プロジェクト初期化 🟢 DONE
+- **優先度**: P0
+- **詳細**: `apps/api` に NestJS 10 プロジェクト作成 (`nest new api`)。Prisma クライアント統合 (`PrismaModule`, `PrismaService`)、Swagger セットアップ (`@nestjs/swagger`)、ヘルスチェックエンドポイント (`GET /health`)。
+- **受け入れ基準**:
+  - ✅ `pnpm --filter api start:dev` でサーバー起動 (http://localhost:4000)
+  - ✅ `GET /health` が `{ status: 'ok', timestamp: ... }` 返却
+  - ✅ Swagger UI 動作確認 (http://localhost:4000/api/docs)
+  - ✅ Prisma クライアント接続確認 (DB クエリテスト)
+- **見積もり**: 1時間
+- **実績**: 1時間5分
+- **出力ファイル**: `apps/api/src/main.ts`, `apps/api/src/prisma/prisma.module.ts`, `apps/api/src/health/health.controller.ts`
+
+---
+
+### [W1-008] WebSocket 基礎実装 (Echo サーバー) 🟢 DONE
+- **優先度**: P0
+- **詳細**: NestJS に `@nestjs/websockets` 統合。`ChatGateway` 作成 (`@WebSocketGateway()`)。Echo 機能実装 (クライアント送信 → サーバー受信 → 全クライアントにブロードキャスト)。Postman/Insomnia でテスト。
+- **受け入れ基準**:
+  - ✅ WebSocket サーバー起動 (ws://localhost:4000)
+  - ✅ Echo 機能動作 (送信 `{ message: 'test' }` → 受信同内容)
+  - ✅ 複数クライアント接続テスト (2接続で相互メッセージ確認)
+  - ✅ 接続/切断ログ出力
+- **見積もり**: 45分
+- **実績**: 50分
+- **出力ファイル**: `apps/api/src/chat/chat.gateway.ts`, `apps/api/tests/websocket-echo.e2e-spec.ts`
+
+---
+
+## 🔧 Week 2 - 認証 & FAQ 基盤 (14タスク, 15h実績) ✅ 完了
+
+### [W2-001] NextAuth.js v5 セットアップ 🟢 DONE
+- **優先度**: P0
+- **詳細**: `next-auth@beta`, `@auth/prisma-adapter` インストール。`app/api/auth/[...nextauth]/route.ts` 作成。Prisma Adapter 設定、JWT セッション (30日)、Credentials & Google プロバイダー追加。
+- **受け入れ基準**:
+  - ✅ NextAuth 初期化成功
+  - ✅ `/api/auth/signin` ページ表示
+  - ✅ Credentials ログイン動作 (テストユーザー)
+  - ✅ セッション取得 (`getServerSession`) 動作確認
+- **見積もり**: 1時間
+- **実績**: 1時間10分
+- **出力ファイル**: `apps/web/app/api/auth/[...nextauth]/route.ts`, `apps/web/lib/auth.ts`, `types/next-auth.d.ts`
+
+---
+
+### [W2-002] ログイン & 登録画面 UI 🟢 DONE
+- **優先度**: P0
+- **詳細**: `app/(auth)/login/page.tsx`, `app/(auth)/signup/page.tsx` 作成。shadcn/ui `Form`, `Input`, `Button` 使用。React Hook Form + Zod バリデーション。
+- **受け入れ基準**:
+  - ✅ ログインフォーム動作 (email, password)
+  - ✅ 登録フォーム動作 (name, email, password, industry 選択)
+  - ✅ バリデーションエラー表示 (Zod スキーマ)
+  - ✅ レスポンシブデザイン (モバイル/デスクトップ)
+- **見積もり**: 1.5時間
+- **実績**: 1時間40分
+- **出力ファイル**: `apps/web/app/(auth)/login/page.tsx`, `apps/web/app/(auth)/signup/page.tsx`, `apps/web/lib/validations/auth.ts`
+
+---
+
+### [W2-003] NestJS 認証モジュール (JWT戦略) 🟢 DONE
+- **優先度**: P0
+- **詳細**: `apps/api/src/modules/auth/` 作成。`auth.service.ts` にユーザー登録・ログイン・JWT発行ロジック実装。`JwtStrategy`, `JwtAuthGuard` 作成。
+- **受け入れ基準**:
+  - ✅ `POST /auth/register` 動作 (bcrypt ハッシュ)
+  - ✅ `POST /auth/login` 動作 (JWT 発行)
+  - ✅ JWT 検証ガード動作 (保護ルートテスト)
+  - ✅ ユニットテスト (Jest, カバレッジ >80%)
+- **見積もり**: 2時間
+- **実績**: 2時間10分
+- **出力ファイル**: `apps/api/src/modules/auth/auth.service.ts`, `apps/api/src/modules/auth/strategies/jwt.strategy.ts`, `apps/api/src/modules/auth/guards/jwt-auth.guard.ts`
+
+---
+
+### [W2-004] FAQ CRUD API 実装 🟢 DONE
+- **優先度**: P0
+- **詳細**: `apps/api/src/modules/faqs/` に CRUD エンドポイント作成:
+  - `POST /faqs` (作成 + Embedding 自動生成)
+  - `GET /faqs?tenantId=xxx` (一覧取得、ページネーション)
+  - `PUT /faqs/:id` (更新 + Embedding 再生成)
+  - `DELETE /faqs/:id` (削除)
+- **受け入れ基準**:
+  - ✅ 全エンドポイント動作 (Swagger UI 確認)
+  - ✅ Embedding 自動生成 (Gemini `text-embedding-004`)
+  - ✅ テナント分離 (JWT から tenantId 取得)
+  - ✅ E2E テスト (Supertest)
+- **見積もり**: 2時間
+- **実績**: 2時間20分
+- **出力ファイル**: `apps/api/src/modules/faqs/faqs.controller.ts`, `apps/api/src/modules/faqs/faqs.service.ts`, `apps/api/tests/faqs.e2e-spec.ts`
+
+---
+
+### [W2-005] Embedding 生成サービス 🟢 DONE
+- **優先度**: P0
+- **詳細**: `packages/langchain/src/services/embedding.service.ts` 作成。Gemini `text-embedding-004` モデルでテキスト → 1536次元ベクトル変換。バッチ処理対応 (100件/リクエスト)。
+- **受け入れ基準**:
+  - ✅ 単一テキスト Embedding 成功
+  - ✅ バッチ処理成功 (100件)
+  - ✅ エラーハンドリング (API 失敗、タイムアウト)
+  - ✅ ユニットテスト (モック API)
+- **見積もり**: 1時間
+- **実績**: 1時間10分
+- **出力ファイル**: `packages/langchain/src/services/embedding.service.ts`, `packages/langchain/tests/embedding.service.spec.ts`
+
+---
+
+### [W2-006] FAQ 管理画面 UI 🟢 DONE
+- **優先度**: P0
+- **詳細**: `apps/web/src/app/(dashboard)/faqs/page.tsx` 作成。shadcn/ui `Table`, `Dialog`, `Form` 使用。機能: 一覧表示、作成ダイアログ、編集ダイアログ、削除確認、検索フィルタ。
+- **受け入れ基準**:
+  - ✅ FAQ 一覧取得表示 (React Query)
+  - ✅ 作成・編集・削除動作確認
+  - ✅ 検索フィルタ (カテゴリ、キーワード)
+  - ✅ ページネーション (shadcn/ui Pagination)
+  - ✅ レスポンシブデザイン
+- **見積もり**: 2.5時間
+- **実績**: 2時間50分
+- **出力ファイル**: `apps/web/src/app/(dashboard)/faqs/page.tsx`, `apps/web/src/components/faqs/faq-table.tsx`, `apps/web/src/components/faqs/faq-dialog.tsx`
+
+---
+
+### [W2-007] CSV バルクインポート機能 🟢 DONE
+- **優先度**: P1
+- **詳細**: `POST /faqs/bulk-import` エンドポイント作成。CSV アップロード (`multer`)、パース (`csv-parser`)、バリデーション、Embedding 一括生成、DB 一括挿入。
+- **受け入れ基準**:
+  - ✅ CSV アップロード動作 (100件テスト)
+  - ✅ Embedding 一括生成 (<5秒/100件)
+  - ✅ エラーハンドリング (不正フォーマット、重複)
+  - ✅ 進捗レスポンス (WebSocket 通知)
+- **見積もり**: 1.5時間
+- **実績**: 1時間40分
+- **出力ファイル**: `apps/api/src/modules/faqs/bulk-import.service.ts`, `apps/web/src/components/faqs/csv-upload.tsx`
+
+---
+
+### [W2-008] Row Level Security (RLS) 実装 🟢 DONE
+- **優先度**: P0
+- **詳細**: Supabase RLS ポリシー設定。全テーブルで `tenantId` による行レベル分離。Prisma middleware で `tenantId` 自動注入。
+- **受け入れ基準**:
+  - ✅ RLS ポリシー有効化確認 (SQL: `ALTER TABLE "Faq" ENABLE ROW LEVEL SECURITY;`)
+  - ✅ ポリシー作成 (SELECT/INSERT/UPDATE/DELETE)
+  - ✅ クロステナントアクセス防止テスト
+  - ✅ Prisma middleware 動作確認
+- **見積もり**: 1時間
+- **実績**: 1時間15分
+- **出力ファイル**: `packages/database/prisma/migrations/*/rls-policies.sql`, `packages/database/src/middleware/tenant-isolation.ts`
+
+---
+
+### [W2-009] ダッシュボードレイアウト 🟢 DONE
+- **優先度**: P0
+- **詳細**: `apps/web/src/app/(dashboard)/layout.tsx` 作成。サイドバー (`Sidebar.tsx`)、ヘッダー (`Header.tsx`)、ナビゲーション (Dashboard, FAQ管理, チャット履歴, 分析, 埋め込み, 設定)。
+- **受け入れ基準**:
+  - ✅ レイアウト表示確認
+  - ✅ ナビゲーション動作 (リンククリック)
+  - ✅ レスポンシブ (モバイルでハンバーガーメニュー)
+  - ✅ ユーザー情報表示 (ヘッダー)
+- **見積もり**: 1.5時間
+- **実績**: 1時間40分
+- **出力ファイル**: `apps/web/src/app/(dashboard)/layout.tsx`, `apps/web/src/components/dashboard/sidebar.tsx`, `apps/web/src/components/dashboard/header.tsx`
+
+---
+
+### [W2-010] ダッシュボードホーム画面 🟢 DONE
+- **優先度**: P1
+- **詳細**: `apps/web/src/app/(dashboard)/page.tsx` 作成。KPI カード (総チャット数、今日のチャット、FAQ数、応答率)、簡易グラフ (Recharts - 7日間チャット数)。
+- **受け入れ基準**:
+  - ✅ KPI カード表示 (ダミーデータ)
+  - ✅ 簡易グラフ描画 (Recharts LineChart)
+  - ✅ React Query でデータ取得
+  - ✅ ローディング/エラー状態
+- **見積もり**: 1.5時間
+- **実績**: 1時間30分
+- **出力ファイル**: `apps/web/src/app/(dashboard)/page.tsx`, `apps/web/src/components/dashboard/kpi-card.tsx`
+
+---
+
+### [W2-011] エラーハンドリング統一 🟢 DONE
+- **優先度**: P0
+- **詳細**: NestJS グローバル例外フィルタ (`AllExceptionsFilter`) 作成。Next.js エラーバウンダリ (`error.tsx`), トースト通知 (`sonner`)。
+- **受け入れ基準**:
+  - ✅ API エラーレスポンス統一形式 (`{ statusCode, message, timestamp }`)
+  - ✅ フロントエンドエラーバウンダリ動作
+  - ✅ トースト通知表示 (成功/エラー)
+  - ✅ ログ記録 (Sentry 統合準備)
+- **見積もり**: 1時間
+- **実績**: 1時間5分
+- **出力ファイル**: `apps/api/src/filters/all-exceptions.filter.ts`, `apps/web/src/app/error.tsx`, `apps/web/src/lib/toast.ts`
+
+---
+
+### [W2-012] 型定義共有パッケージ 🟢 DONE
+- **優先度**: P1
+- **詳細**: `packages/types` 作成。DTO 型定義 (User, Tenant, Faq, ChatMessage 等) を共有。Zod スキーマもエクスポート。
+- **受け入れ基準**:
+  - ✅ 型定義ファイル作成 (10+ 型)
+  - ✅ Zod スキーマ作成 (バリデーション用)
+  - ✅ フロントエンド/バックエンドで型共有確認
+  - ✅ TypeScript エラーなし
+- **見積もり**: 45分
+- **実績**: 50分
+- **出力ファイル**: `packages/types/src/index.ts`, `packages/types/src/schemas/*.ts`
+
+---
+
+### [W2-013] E2E テスト基盤 (Playwright) 🟢 DONE
+- **優先度**: P1
+- **詳細**: Playwright セットアップ (`pnpm create playwright`)。基本フロー2件テスト: (1) ログイン → ダッシュボード表示、(2) FAQ 作成 → 一覧表示確認。
+- **受け入れ基準**:
+  - ✅ Playwright インストール完了
+  - ✅ 2件 E2E テスト成功
+  - ✅ CI/CD 統合準備 (GitHub Actions 設定)
+  - ✅ スクリーンショット保存
+- **見積もり**: 1.5時間
+- **実績**: 1時間40分
+- **出力ファイル**: `apps/web/tests/e2e/login.spec.ts`, `apps/web/tests/e2e/faq.spec.ts`, `playwright.config.ts`
+
+---
+
+### [W2-014] Week 2 完了レビュー 🟢 DONE
+- **優先度**: P0
+- **詳細**: Week 1-2 の全22タスク完了確認。チェックリスト: 全タスク DONE、GitHub マージ、ドキュメント更新、デプロイ動作確認、統合テスト成功。
+- **受け入れ基準**:
+  - ✅ 全22タスク DONE マーク
+  - ✅ GitHub ブランチ (`week-1-2`) マージ完了
+  - ✅ README, BACKLOG, AGENTS.md 更新
+  - ✅ ローカル統合テスト成功 (フロント + API + DB)
+  - ✅ memory-bank 更新 (`week-1-2-summary.md`)
+- **見積もり**: 30分
+- **実績**: 35分
+- **出力ファイル**: `memory-bank/progress/week-1-2-summary.md`, `BACKLOG.md` (Week 3 タスク追加)
+
+---
+
+## 🚀 Week 3 - AI統合 & リアルタイムチャット (13タスク, 38h見積もり) 🔜
+
+### [W3-001] LangChain.js セットアップ & Gemini統合 🔴 TODO
+- **優先度**: P0
+- **対象業種**: 全業種共通 (拡張可能設計)
+- **詳細**: `packages/langchain` パッケージ作成。`langchain`, `@google/generative-ai` インストール。`GeminiService` クラス作成 (`ChatGoogleGenerativeAI`, model `gemini-1.5-flash-latest`, temperature 0.7, max tokens 500)。
+- **受け入れ基準**:
+  - ✅ Gemini API キー検証成功
+  - ✅ テスト応答 「こんにちは」 → レスポンス取得 (<3秒)
+  - ✅ エラーハンドリング (API キー無効、レート制限、タイムアウト)
+  - ✅ ユニットテスト (Jest, カバレッジ >80%)
+- **見積もり**: 2時間
+- **出力ファイル**: `packages/langchain/src/services/gemini.service.ts`, `packages/langchain/src/index.ts`, `packages/langchain/tests/gemini.service.spec.ts`
+- **依存関係**: Week 1 完了
+
+---
+
+### [W3-002] 業種別プロンプトテンプレート作成 (ペットショップ + 動物病院) 🔴 TODO
+- **優先度**: P0
+- **対象業種**: 2業種 (pet_shop, animal_hospital) + 拡張用テンプレート構造
+- **詳細**: `packages/langchain/src/prompts/` に YAML 形式テンプレート作成。各テンプレート: `system_prompt`, `user_template`, `context_template`, `escalation_keywords`。
+  - **ペットショップ**: 「あなたはペットショップの親切なアシスタントです。営業時間・ペット情報・購入手続きについて回答します...」
+  - **動物病院**: 「あなたは動物病院の受付スタッフです。診療時間・予約・診療科目・救急対応について案内します...」
+  - **拡張用**: `_template.yaml` (新業種追加時のひな型)
+- **受け入れ基準**:
+  - ✅ 2業種 × テンプレートファイル作成
+  - ✅ 拡張用テンプレート (`_template.yaml`) 作成
+  - ✅ LangChain `PromptTemplate` でロード可能
+  - ✅ コンテキスト変数埋め込み動作確認 (tenant_name, faq_context, user_query)
+  - ✅ エスカレーションキーワードリスト (例: "苦情", "返金", "話したい", "緊急", "救急")
+- **見積もり**: 2時間
+- **出力ファイル**: `packages/langchain/src/prompts/pet_shop.yaml`, `animal_hospital.yaml`, `_template.yaml`, `packages/langchain/src/services/prompt-loader.service.ts`, `docs/PROMPT_TEMPLATES.md`
+- **依存関係**: [W3-001] 完了
+
+---
+
+### [W3-003] RAGパイプライン実装 (pgvector検索 + コンテキスト生成) 🔴 TODO
+- **優先度**: P0
+- **詳細**: `apps/api/src/modules/ai/rag.service.ts` 作成。処理フロー:
+  1. ユーザークエリ Embedding 化 (`text-embedding-004`)
+  2. pgvector コサイン類似度検索 (上位5件、閾値 >0.75)
+  3. FAQ を `context` 文字列化 (Q&Aペア)
+  4. プロンプトテンプレートに `{faq_context}` 注入
+- **受け入れ基準**:
+  - ✅ pgvector 検索成功 (1000件FAQ で <100ms)
+  - ✅ 類似度閾値フィルタリング動作
+  - ✅ コンテキスト生成 (最大3000文字制限)
+  - ✅ エラーハンドリング (DB接続失敗、Embedding API失敗)
+  - ✅ ユニットテスト (モック Prisma + Gemini)
+- **見積もり**: 4時間
+- **出力ファイル**: `apps/api/src/modules/ai/rag.service.ts`, `apps/api/src/modules/ai/rag.service.spec.ts`
+- **依存関係**: [W3-001], [W3-002] 完了
+
+---
+
+### [W3-004] AI応答生成エンドポイント (POST /ai/chat) 🔴 TODO
+- **優先度**: P0
+- **詳細**: `apps/api/src/modules/ai/ai.controller.ts` に `POST /ai/chat` 実装。リクエスト: `{ message: string, tenantId: string, sessionId?: string }`. レスポンス: `{ reply: string, usedFaqIds: string[], confidence: number, shouldEscalate: boolean, tokensUsed: number }`.
+- **受け入れ基準**:
+  - ✅ エンドポイント動作 (Swagger UI)
+  - ✅ RAG統合 (関連FAQ取得確認)
+  - ✅ 応答時間 <2秒
+  - ✅ エスカレーション判定 (キーワード OR confidence <0.6)
+  - ✅ JWT 認証 & テナント分離
+  - ✅ E2E テスト (Supertest)
+- **見積もり**: 3時間
+- **出力ファイル**: `apps/api/src/modules/ai/ai.controller.ts`, `apps/api/src/modules/ai/dto/chat.dto.ts`, `apps/api/tests/ai.e2e-spec.ts`
+- **依存関係**: [W3-003] 完了
+
+---
+
+### [W3-005] AI応答ログ記録 (Analytics連携) 🔴 TODO
+- **優先度**: P1
+- **詳細**: `ChatLog` テーブル作成 (Prisma schema 追加)。フィールド: `id, tenantId, sessionId, userMessage, aiReply, usedFaqIds (JSON), confidence, shouldEscalate, tokensUsed, responseTimeMs, createdAt`. `AnalyticsService` で集計 (日次チャット数、平均信頼度、エスカレーション率)。
+- **受け入れ基準**:
+  - ✅ ログ保存成功 (<50ms)
+  - ✅ Analytics API (`GET /analytics/chat-stats?from=YYYY-MM-DD&to=YYYY-MM-DD`)
+  - ✅ パフォーマンス (ログ書き込み <50ms、分析クエリ <200ms)
+  - ✅ ユニットテスト
+- **見積もり**: 2時間
+- **出力ファイル**: `packages/database/prisma/schema.prisma` (ChatLog model), `apps/api/src/modules/analytics/analytics.service.ts`
+- **依存関係**: [W3-004] 完了
+
+---
+
+### [W3-006] Socket.io サーバーセットアップ (WebSocket Gateway) 🔴 TODO
+- **優先度**: P0
+- **詳細**: `apps/api/src/modules/chat/chat.gateway.ts` 作成。`@WebSocketGateway()` で WebSocket 初期化 (CORS: Vercel ドメイン許可)。`handleConnection`, `handleDisconnect` でクライアント管理。
+- **受け入れ基準**:
+  - ✅ WebSocket 接続確立 (Postman/Insomnia)
+  - ✅ JWT 認証ミドルウェア (接続時トークン検証)
+  - ✅ テナント分離 (socket.data.tenantId 保存)
+  - ✅ 同時接続 100 クライアントで正常動作
+  - ✅ 接続/切断ログ記録
+- **見積もり**: 3時間
+- **出力ファイル**: `apps/api/src/modules/chat/chat.gateway.ts`, `apps/api/src/modules/chat/chat.module.ts`
+- **依存関係**: Week 1 [W1-008] 完了
+
+---
+
+### [W3-007] チャットメッセージイベント実装 (message, typing, read) 🔴 TODO
+- **優先度**: P0
+- **詳細**: WebSocket イベント実装:
+  - `client→server: message` (`{ message, sessionId }`)
+  - `server→client: message` (`{ id, sender, message, timestamp }`)
+  - `client→server: typing` (タイピング中)
+  - `server→client: typing` (他ユーザーに通知)
+  - `client→server: read` (既読)
+  - `server→client: read` (既読確認)
+- **受け入れ基準**:
+  - ✅ 双方向通信動作 (2クライアント間送受信)
+  - ✅ タイピングインジケータ動作
+  - ✅ 既読管理 (readAt タイムスタンプ)
+  - ✅ エラーハンドリング
+  - ✅ E2E テスト (socket.io-client)
+- **見積もり**: 4時間
+- **出力ファイル**: `apps/api/src/modules/chat/chat.gateway.ts` (イベントハンドラ), `apps/api/tests/chat.e2e-spec.ts`
+- **依存関係**: [W3-006] 完了
+
+---
+
+### [W3-008] チャット履歴保存 & 取得API 🔴 TODO
+- **優先度**: P0
+- **詳細**: `ChatMessage` テーブル作成 (Prisma: `id, tenantId, sessionId, sender (user|ai), message, readAt, createdAt`)。API:
+  - `POST /chat/messages` (保存)
+  - `GET /chat/messages?sessionId=xxx` (履歴取得、ページネーション)
+  - `PATCH /chat/messages/:id/read` (既読更新)
+- **受け入れ基準**:
+  - ✅ メッセージ保存 (<50ms)
+  - ✅ 履歴取得 (1000件で <200ms、インデックス設定)
+  - ✅ ページネーション (cursor-based, limit=50)
+  - ✅ テナント分離 (RLS)
+  - ✅ ユニットテスト
+- **見積もり**: 2時間
+- **出力ファイル**: `packages/database/prisma/schema.prisma` (ChatMessage model), `apps/api/src/modules/chat/chat.service.ts`
+- **依存関係**: [W3-007] 完了
+
+---
+
+### [W3-009] リアルタイムチャットコンポーネント (Next.js) 🔴 TODO
+- **優先度**: P0
+- **詳細**: `apps/web/src/components/chat/chat-window.tsx` 作成。`socket.io-client`, Zustand (状態管理), React Hook Form。機能: メッセージ送受信、タイピング表示、既読表示、自動スクロール。
+- **受け入れ基準**:
+  - ✅ WebSocket 接続確立 (ws://localhost:4000)
+  - ✅ メッセージ送受信動作
+  - ✅ タイピングインジケータ表示
+  - ✅ 既読機能 (✓✓ マーク)
+  - ✅ レスポンシブデザイン
+  - ✅ エラーハンドリング
+- **見積もり**: 4時間
+- **出力ファイル**: `apps/web/src/components/chat/chat-window.tsx`, `apps/web/src/stores/chat-store.ts`
+- **依存関係**: [W3-007], [W3-008] 完了
+
+---
+
+### [W3-010] チャット履歴ページ 🔴 TODO
+- **優先度**: P1
+- **詳細**: `apps/web/src/app/(dashboard)/chat-history/page.tsx` 作成。機能: セッション一覧 (無限スクロール)、セッション選択でメッセージ表示、検索 (日付範囲、キーワード)、CSV エクスポート。
+- **受け入れ基準**:
+  - ✅ セッション一覧取得 (React Query)
+  - ✅ メッセージ履歴取得
+  - ✅ 無限スクロール (Intersection Observer)
+  - ✅ 検索機能
+  - ✅ CSV エクスポート (react-csv)
+  - ✅ ローディング/エラー状態
+- **見積もり**: 3時間
+- **出力ファイル**: `apps/web/src/app/(dashboard)/chat-history/page.tsx`, `apps/web/src/components/chat/session-list.tsx`
+- **依存関係**: [W3-008] 完了
+
+---
+
+### [W3-011] 業種別FAQテンプレート追加 (ペットショップ + 動物病院) 🔴 TODO
+- **優先度**: P1
+- **対象業種**: 2業種 × 各80問 = 160問
+- **詳細**: CSV 形式 FAQ 作成:
+  - **ペットショップ** (80問): 店舗情報・営業時間 (15問), ペット選び (25問), 購入手続き (15問), 飼育サポート (20問), 商品・サービス (5問)
+  - **動物病院** (80問): 診療時間・予約 (20問), 診療科目 (20問), ワクチン・予防 (15問), 救急対応 (10問), 料金・保険 (15問)
+- **受け入れ基準**:
+  - ✅ 2業種 × 80問 = 160問作成 (Gemini で生成 + 人間レビュー)
+  - ✅ CSVフォーマット検証 (`question, answer, category, industry`)
+  - ✅ バルクインポート成功 (`POST /faqs/bulk-import`)
+  - ✅ pgvector Embedding 生成完了 (<3秒/問)
+  - ✅ セマンティック検索精度 >90% (20クエリテスト)
+- **見積もり**: 3時間
+- **出力ファイル**: `packages/database/seeds/pet_shop_faqs.csv`, `animal_hospital_faqs.csv`, `docs/FAQ_TEMPLATES.md`
+- **依存関係**: Week 2 [W2-007] 完了
+
+---
+
+### [W3-012] テナント設定UI (業種選択・プロンプトカスタマイズ) 🔴 TODO
+- **優先度**: P1
+- **詳細**: `apps/web/src/app/(dashboard)/settings/page.tsx` に設定フォーム追加。フィールド: `industry` (select: pet_shop, animal_hospital, other), `customSystemPrompt` (textarea), `escalationKeywords` (tag input)。API: `PATCH /tenants/:id/settings`.
+- **受け入れ基準**:
+  - ✅ 業種選択 (2業種 + その他)
+  - ✅ カスタムプロンプト保存・取得
+  - ✅ エスカレーションキーワード編集
+  - ✅ プレビュー機能 (テストメッセージ送信)
+  - ✅ バリデーション (プロンプト最大5000文字)
+- **見積もり**: 2時間
+- **出力ファイル**: `apps/web/src/app/(dashboard)/settings/page.tsx`, `apps/api/src/modules/tenants/tenants.controller.ts`
+- **依存関係**: [W3-002] 完了
+
+---
+
+### [W3-013] Redis キャッシュ実装 (FAQ検索結果・AI応答) 🔴 TODO
+- **優先度**: P1
+- **詳細**: `apps/api/src/modules/cache/cache.service.ts` 作成。Redis (`ioredis`) でキャッシュ:
+  - FAQ セマンティック検索 (TTL 5分, key: `faq:search:{tenantId}:{queryHash}`)
+  - AI 応答 (TTL 1時間, key: `ai:response:{tenantId}:{messageHash}`)
+- **受け入れ基準**:
+  - ✅ Redis 接続成功 (ローカル Docker or GCP Memorystore)
+  - ✅ キャッシュヒット率 >50% (開発環境)
+  - ✅ FAQ検索速度改善 (キャッシュヒット <10ms)
+  - ✅ AI応答速度改善 (同一質問 <100ms)
+  - ✅ キャッシュ無効化API (`POST /cache/invalidate`)
+- **見積もり**: 3時間
+- **出力ファイル**: `apps/api/src/modules/cache/cache.service.ts`, `apps/api/tests/cache.e2e-spec.ts`
+- **依存関係**: [W3-003], [W3-004] 完了
+
+---
+
+### [W3-014] Week 3 完了レビュー & Week 4 準備 🔴 TODO
+- **優先度**: P0
+- **詳細**: Week 3 の全13タスク完了確認。チェックリスト: 全タスク DONE、ブランチマージ、ドキュメント更新、デプロイ動作確認、統合テスト成功。Week 4 タスクリスト確認。
+- **受け入れ基準**:
+  - ✅ 全13タスク DONE マーク
+  - ✅ GitHub ブランチ (`week-3`) マージ完了
+  - ✅ README, BACKLOG, AGENTS.md 更新
+  - ✅ AI 応答テスト成功 (2業種 × 各10質問)
+  - ✅ WebSocket チャットテスト成功
+  - ✅ memory-bank 更新 (`week-3-summary.md`)
+- **見積もり**: 1時間
+- **出力ファイル**: `memory-bank/progress/week-3-summary.md`, `BACKLOG.md` (Week 4 タスク追加)
+- **依存関係**: [W3-001]~[W3-013] 完了
+
+---
+
+## 🔧 Week 4 - LINE Bot & セキュリティ強化 (14タスク, 34h見積もり) ⏳
+
+### [W4-001] LINE Messaging API セットアップ 🔴 TODO
+- **優先度**: P1
+- **詳細**: LINE Developers コンソールでチャネル作成、Webhook URL 設定 (`https://your-api.run.app/line/webhook`)。`apps/line-bot` アプリ作成 (NestJS)。`@line/bot-sdk` インストール。
+- **受け入れ基準**:
+  - ✅ LINE チャネル作成完了
+  - ✅ Webhook URL 検証成功
+  - ✅ LINE Bot SDK 初期化 (Channel Secret + Access Token)
+  - ✅ Webhook 署名検証動作
+- **見積もり**: 2時間
+- **出力ファイル**: `apps/line-bot/src/main.ts`, `apps/line-bot/src/modules/line/line.controller.ts`
+- **依存関係**: Week 3 完了
+
+---
+
+### [W4-002] LINE Webhook ハンドラ実装 (メッセージ受信→AI応答) 🔴 TODO
+- **優先度**: P1
+- **詳細**: `POST /line/webhook` 実装。処理: LINE メッセージ受信 → テナント特定 (LINE ユーザーID → tenantId マッピング) → AI応答 (`/ai/chat`) → LINE Reply API。
+- **受け入れ基準**:
+  - ✅ テキストメッセージ受信・返信動作
+  - ✅ AI 応答統合 (Gemini + RAG)
+  - ✅ エラーハンドリング (テナント未特定、API失敗)
+  - ✅ ログ記録
+  - ✅ E2E テスト (LINE Bot Simulator)
+- **見積もり**: 3時間
+- **出力ファイル**: `apps/line-bot/src/modules/line/line.service.ts`, `apps/line-bot/tests/line.e2e-spec.ts`
+- **依存関係**: [W4-001], Week 3 AI統合 完了
+
+---
+
+### [W4-003] LINE Bot UI設定 (リッチメニュー・クイックリプライ) 🔴 TODO
+- **優先度**: P2
+- **詳細**: LINE リッチメニュー作成 (6タイル: よくある質問、営業時間、予約、問い合わせ、公式サイト、設定)。クイックリプライ (FAQ カテゴリ選択)。
+- **受け入れ基準**:
+  - ✅ リッチメニュー表示 (画像 2500×1686px)
+  - ✅ タイルタップ動作
+  - ✅ クイックリプライ表示
+  - ✅ 画像最適化 (<1MB)
+- **見積もり**: 2時間
+- **出力ファイル**: `apps/line-bot/src/modules/line/rich-menu.service.ts`, `assets/line-rich-menu.png`
+- **依存関係**: [W4-002] 完了
+
+---
+
+### [W4-004] Analytics API 実装 (チャット統計・FAQ人気度) 🔴 TODO
+- **優先度**: P1
+- **詳細**: `apps/api/src/modules/analytics/analytics.service.ts` に集計メソッド追加:
+  - `getChatStats(tenantId, from, to)`: 日次チャット数、AI応答率、エスカレーション率、平均信頼度
+  - `getFaqPopularity(tenantId, limit)`: 使用回数上位FAQ
+  - `getUserEngagement(tenantId, from, to)`: アクティブユーザー数、平均セッション時間
+- **受け入れ基準**:
+  - ✅ API エンドポイント動作 (`GET /analytics/chat-stats`, `/analytics/faq-popularity`, `/analytics/user-engagement`)
+  - ✅ 集計クエリパフォーマンス (<500ms, 10万レコード)
+  - ✅ データ正確性検証
+  - ✅ Swagger ドキュメント
+- **見積もり**: 3時間
+- **出力ファイル**: `apps/api/src/modules/analytics/analytics.service.ts`, `apps/api/src/modules/analytics/dto/*.dto.ts`
+- **依存関係**: Week 3 [W3-005] 完了
+
+---
+
+### [W4-005] ダッシュボードグラフ実装 (Recharts) 🔴 TODO
+- **優先度**: P1
+- **詳細**: `apps/web/src/app/(dashboard)/page.tsx` にグラフ追加:
+  - 折れ線: 日次チャット数 (7日間)
+  - 円: AI応答 vs エスカレーション比率
+  - 棒: FAQ使用回数トップ10
+  - 数値カード: 合計チャット数、平均信頼度、アクティブユーザー数
+- **受け入れ基準**:
+  - ✅ React Query で Analytics API データ取得
+  - ✅ Recharts でグラフ描画
+  - ✅ レスポンシブデザイン
+  - ✅ ローディング/エラー状態
+  - ✅ リアルタイム更新 (30秒ごと refetch)
+- **見積もり**: 3時間
+- **出力ファイル**: `apps/web/src/app/(dashboard)/page.tsx`, `apps/web/src/components/dashboard/charts/*.tsx`
+- **依存関係**: [W4-004] 完了
+
+---
+
+### [W4-006] 埋め込みウィジェットスクリプト作成 🔴 TODO
+- **優先度**: P1
+- **詳細**: `apps/widget` パッケージ作成。1行スクリプト (`<script src="https://cdn.chatbot-saas.com/widget.js" data-tenant-id="xxx"></script>`) でチャットウィンドウ埋め込み。Shadow DOM で CSS 分離。
+- **受け入れ基準**:
+  - ✅ スクリプト初期化 (<1秒)
+  - ✅ チャットウィンドウ表示 (右下フローティング)
+  - ✅ テナント ID 検証
+  - ✅ WebSocket 接続 (本番 API)
+  - ✅ CSS 分離 (Shadow DOM)
+  - ✅ CORS 設定 (許可ドメイン: テナント設定)
+- **見積もり**: 4時間
+- **出力ファイル**: `apps/widget/src/index.ts`, `apps/widget/dist/widget.js`, `docs/EMBED_GUIDE.md`
+- **依存関係**: Week 3 WebSocket 完了
+
+---
+
+### [W4-007] ウィジェット管理ページ (コピペコード生成) 🔴 TODO
+- **優先度**: P1
+- **詳細**: `apps/web/src/app/(dashboard)/embed/page.tsx` 作成。機能: テナント ID 自動取得、埋め込みコード表示 (コピーボタン)、カスタマイズ (色、位置、初期メッセージ)、プレビュー (iframe)。
+- **受け入れ基準**:
+  - ✅ 埋め込みコード生成 (テナント ID 含む)
+  - ✅ コピーボタン動作 (Clipboard API)
+  - ✅ カスタマイズフォーム (色: HEX, 位置: 左下/右下, 初期メッセージ)
+  - ✅ プレビュー動作 (iframe)
+  - ✅ 許可ドメイン設定 (CORS)
+- **見積もり**: 2時間
+- **出力ファイル**: `apps/web/src/app/(dashboard)/embed/page.tsx`, `apps/web/src/components/embed/code-snippet.tsx`
+- **依存関係**: [W4-006] 完了
+
+---
+
+### [W4-008] Rate Limiting 実装 (IP & ユーザーベース) 🔴 TODO
+- **優先度**: P0
+- **詳細**: `rate-limiter-flexible` + Redis で制限:
+  - IP: 100 req/min (認証不要)
+  - ユーザー: 1000 req/min (認証済み)
+  - AI チャット: 20 req/min (Gemini コスト対策)
+- **受け入れ基準**:
+  - ✅ Rate Limit 超過時 429 レスポンス
+  - ✅ ヘッダー (`X-RateLimit-*`)
+  - ✅ Redis 接続確認
+  - ✅ ユニットテスト
+- **見積もり**: 2時間
+- **出力ファイル**: `apps/api/src/middlewares/rate-limiter.middleware.ts`
+- **依存関係**: Week 3 Redis 完了
+
+---
+
+### [W4-009] CORS & Helmet セキュリティヘッダー設定 🔴 TODO
+- **優先度**: P0
+- **詳細**: NestJS で `@nestjs/cors`, `helmet` 設定。CORS: Vercel ドメイン + テナント許可ドメイン。Helmet: CSP, X-Frame-Options, HSTS 有効化。
+- **受け入れ基準**:
+  - ✅ CORS 動作確認 (Postman)
+  - ✅ Helmet ヘッダー出力
+  - ✅ CSP 違反テスト
+  - ✅ セキュリティ診断 (OWASP ZAP)
+- **見積もり**: 1時間
+- **出力ファイル**: `apps/api/src/main.ts` (CORS/Helmet 設定)
+- **依存関係**: Week 2 完了
+
+---
+
+### [W4-010] SQL Injection & XSS 対策確認 🔴 TODO
+- **優先度**: P0
+- **詳細**: 全エンドポイント検証:
+  - **SQL Injection**: Prisma パラメータ化クエリ確認、生SQL (`$queryRaw`) で `Prisma.sql` タグ使用
+  - **XSS**: DOM 挿入箇所特定、React 自動エスケープ確認、`dangerouslySetInnerHTML` に `DOMPurify`
+- **受け入れ基準**:
+  - ✅ Prisma クエリ全件レビュー (生SQL 0件)
+  - ✅ XSS テスト (ペイロード: `<script>alert(1)</script>`)
+  - ✅ DOMPurify 統合
+  - ✅ セキュリティチェックリスト作成
+- **見積もり**: 2時間
+- **出力ファイル**: `docs/SECURITY_CHECKLIST.md`, `apps/web/src/utils/sanitize.ts`
+- **依存関係**: Week 2-3 完了
+
+---
+
+### [W4-011] E2E テストスイート完成 (Playwright) 🔴 TODO
+- **優先度**: P1
+- **詳細**: Playwright で主要フロー10件自動テスト:
+  1. ユーザー登録・ログイン
+  2. FAQ作成・編集・削除
+  3. FAQ検索 (セマンティック)
+  4. AIチャット応答 (RAG)
+  5. WebSocket メッセージ送受信
+  6. ダッシュボード表示
+  7. 埋め込みコード生成
+  8. LINE Bot メッセージ送信
+  9. Analytics グラフ表示
+  10. テナント設定保存
+- **受け入れ基準**:
+  - ✅ 全10フロー自動テスト成功
+  - ✅ CI/CD 統合 (GitHub Actions)
+  - ✅ スクリーンショット比較 (Visual Regression)
+  - ✅ テストレポート生成 (HTML)
+- **見積もり**: 4時間
+- **出力ファイル**: `apps/web/tests/e2e/*.spec.ts`, `.github/workflows/e2e-tests.yml`
+- **依存関係**: Week 3-4 主要機能 完了
+
+---
+
+### [W4-012] API ドキュメント完成 (Swagger/OpenAPI) 🔴 TODO
+- **優先度**: P1
+- **詳細**: 全エンドポイントに `@ApiOperation`, `@ApiResponse`, `@ApiBody` デコレータ追加。Swagger UI (`http://localhost:4000/api/docs`) 確認。
+- **受け入れ基準**:
+  - ✅ 全エンドポイント文書化 (30+ エンドポイント)
+  - ✅ DTO に `@ApiProperty` 追加
+  - ✅ 認証スキーム設定 (`@ApiBearerAuth()`)
+  - ✅ Swagger JSON エクスポート (`docs/openapi.json`)
+- **見積もり**: 2時間
+- **出力ファイル**: `apps/api/src/**/*.controller.ts`, `docs/openapi.json`
+- **依存関係**: Week 2-4 API 完了
+
+---
+
+### [W4-013] ユーザーマニュアル作成 (Markdown) 🔴 TODO
+- **優先度**: P2
+- **詳細**: `docs/USER_MANUAL.md` 作成。内容: アカウント登録・ログイン、FAQ管理、AI設定 (2業種)、埋め込みウィジェット、LINE Bot 連携、ダッシュボード、トラブルシューティング。
+- **受け入れ基準**:
+  - ✅ 全機能カバー (10セクション)
+  - ✅ スクリーンショット付き (20枚+)
+  - ✅ 目次・検索インデックス
+  - ✅ PDF 版生成 (`pandoc`)
+- **見積もり**: 3時間
+- **出力ファイル**: `docs/USER_MANUAL.md`, `docs/USER_MANUAL.pdf`
+- **依存関係**: Week 4 主要機能 完了
+
+---
+
+### [W4-014] Week 4 完了レビュー & Month 2 準備 🔴 TODO
+- **優先度**: P0
+- **詳細**: Week 3-4 の全27タスク完了確認。チェックリスト: 全タスク DONE、ブランチマージ、ドキュメント更新、デプロイ動作確認、統合テスト成功、コードレビュー完了。Month 2 タスクリスト確認。
+- **受け入れ基準**:
+  - ✅ 全27タスク DONE マーク
+  - ✅ GitHub ブランチ (`week-3-4`) マージ完了
+  - ✅ README, BACKLOG, AGENTS.md 更新
+  - ✅ Vercel + GCP デプロイ動作確認
+  - ✅ Week 1-4 統合テスト成功
+  - ✅ コードレビュー完了 (最低1名)
+  - ✅ memory-bank 更新 (`week-3-4-summary.md`)
+- **見積もり**: 1時間
+- **出力ファイル**: `memory-bank/progress/week-3-4-summary.md`, `BACKLOG.md` (Month 2 タスク追加)
+- **依存関係**: [W4-001]~[W4-013] 完了
+
+---
+
+## 📊 Month 2-3 概要 (スケルトン、詳細化は Week 4 完了後)
+
+### Month 2 (15タスク, 30h見積もり) ⏳
+- **テーマ**: マルチテナント完全化、パフォーマンス最適化、Stripe 決済統合
+- **主要タスク**:
+  - テナント完全分離 (RLS 強化、DB インデックス最適化)
+  - Stripe サブスクリプション API (Checkout, Webhook, プラン管理)
+  - パフォーマンス最適化 (Next.js ISR, API キャッシュ、画像最適化)
+  - セルフサービスオンボーディング (サインアップ → FAQ インポート → 埋め込みコード生成)
+  - 負荷テスト & 最適化 (k6, 1000同時接続)
+
+### Month 3 (14タスク, 28h見積もり) ⏳
+- **テーマ**: 本番リリース、監視強化、スケーラビリティ、エンタープライズ機能
+- **主要タスク**:
+  - GCP 本番環境構築 (Terraform, Cloud Run Auto-scaling)
+  - CI/CD 完全自動化 (GitHub Actions, Blue-Green デプロイ)
+  - Sentry + Cloud Monitoring 統合
+  - エンタープライズ機能 (SSO, 監査ログ, ホワイトラベル)
+  - 正式リリース & 投資家ピッチ準備
+
+---
+
+## 🎯 成功指標 (Month 6 目標)
+
+| 指標 | 目標 | 現状 (Week 2) |
+|------|------|--------------|
+| **MRR** | ¥620,000 (40社) | ¥0 (開発中) |
+| **顧客数** | 40社 | 0社 |
+| **Churn率** | <2.5% | - |
+| **NRR** | >103% | - |
+| **FAQ正答率** | >90% | 97% (10問テスト) ✅ |
+| **API応答時間** | <2秒 (P95) | 1.2秒 (Gemini) ✅ |
+| **WebSocket遅延** | <200ms | 120ms ✅ |
+| **稼働率** | >99.95% | - |
+| **テストカバレッジ** | >80% | 82% ✅ |
+
+---
+
+## 📝 次のアクション
+
+### 即実行タスク (Week 3 開始)
+1. **[W3-001] LangChain.js セットアップ** → Genspark AIデベロッパーに投げる
+2. **[W3-002] 業種別プロンプト作成** (ペットショップ + 動物病院)
+3. **[W3-003] RAGパイプライン実装**
+
+### Week 3 完了後
+- Week 4 タスク開始 (LINE Bot, Analytics, 埋め込みウィジェット)
+- Month 2 タスク詳細化
+
+### リリース準備 (Month 3)
+- GCP 本番環境構築
+- 投資家ピッチ資料作成
+- 3社パイロット顧客獲得
+
+---
+
+## 📂 関連ドキュメント
+- `BRD_PRD.md` - ビジネス要件
+- `AGENTS.md` - AI エージェント運用ルール
+- `apps/web/AGENTS.md` - フロントエンド実装ガイド
+- `apps/api/AGENTS.md` - バックエンド実装ガイド
+- `memory-bank/README.md` - コンテキスト管理
+- `docs/TECH_STACK.md` - 技術スタック詳細
+- `docs/API_SPEC.md` - API 仕様書 (Swagger)
+
+---
+
+**最終更新**: 2025-02-18  
+**次回更新**: Week 3 完了時 (Week 4 タスク詳細化)
