@@ -84,13 +84,14 @@ model TenantUser {
 // FaqTemplate (業種別テンプレート)
 // ========================================
 model FaqTemplate {
-  id         String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  industry   String                      @db.VarChar(50)
-  question   String                      @db.Text
-  answer     String                      @db.Text
-  category   String?                     @db.VarChar(100)
-  embedding  Unsupported("vector(1536)")? // pgvector型 (Gemini text-embedding-004: 768次元, OpenAI ada-002: 1536次元)
-  usageCount Int                         @default(0) @map("usage_count")
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  industry   String   @db.VarChar(50)
+  question   String   @db.Text
+  answer     String   @db.Text
+  category   String?  @db.VarChar(100)
+  // 埋め込みベクトルは Json として保存 (Week 3 で pgvector 型に移行予定)
+  embedding  Json?
+  usageCount Int      @default(0) @map("usage_count")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -103,14 +104,17 @@ model FaqTemplate {
 // TenantFaq (テナント個別FAQ)
 // ========================================
 model TenantFaq {
-  id        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String                      @map("tenant_id") @db.Uuid
-  question  String                      @db.Text
-  answer    String                      @db.Text
-  category  String?                     @db.VarChar(100)
-  embedding Unsupported("vector(1536)")?
-  isActive  Boolean                     @default(true) @map("is_active")
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  question  String   @db.Text
+  answer    String   @db.Text
+  category  String?  @db.VarChar(100)
+  tags      String[] @default([])
+  // 埋め込みベクトルは Json[] として保存 (Week 3 で pgvector 型に移行予定)
+  embedding Json?
+  isActive  Boolean  @default(true) @map("is_active")
 
+  viewCount     Int @default(0) @map("view_count")
   clickCount    Int @default(0) @map("click_count")
   positiveVotes Int @default(0) @map("positive_votes")
   negativeVotes Int @default(0) @map("negative_votes")
