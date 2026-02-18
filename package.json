@@ -1,0 +1,26 @@
+{
+  "name": "ai-chatbot-saas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Chatbot SaaS Platform for SMBs",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "format": "turbo run format",
+    "test": "turbo run test",
+    "test:ci": "turbo run test:ci",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.0"
+  },
+  "packageManager": "pnpm@10.30.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}
