@@ -128,7 +128,8 @@ export function useChat(options: ChatOptions) {
       socket.disconnect();
       initialized.current = false;
     };
-  }, [options.tenantId, options.customerId, options.channel, addMessage]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options.tenantId, options.customerId, options.channel]);
 
   const sendMessage = useCallback(
     (content: string) => {

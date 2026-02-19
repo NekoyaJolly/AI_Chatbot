@@ -74,9 +74,18 @@ export function ChatWindow({ tenantId, customerId, height = '600px' }: ChatWindo
             </div>
             <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-2 text-sm">
               <div className="flex gap-1 items-center h-5">
-                <span className="animate-bounce delay-0 h-1.5 w-1.5 bg-muted-foreground rounded-full" />
-                <span className="animate-bounce delay-150 h-1.5 w-1.5 bg-muted-foreground rounded-full" />
-                <span className="animate-bounce delay-300 h-1.5 w-1.5 bg-muted-foreground rounded-full" />
+                <span
+                  className="animate-bounce h-1.5 w-1.5 bg-muted-foreground rounded-full"
+                  style={{ animationDelay: '0ms' }}
+                />
+                <span
+                  className="animate-bounce h-1.5 w-1.5 bg-muted-foreground rounded-full"
+                  style={{ animationDelay: '150ms' }}
+                />
+                <span
+                  className="animate-bounce h-1.5 w-1.5 bg-muted-foreground rounded-full"
+                  style={{ animationDelay: '300ms' }}
+                />
               </div>
             </div>
           </div>

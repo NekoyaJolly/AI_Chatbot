@@ -47,8 +47,12 @@ export class AiService {
     private readonly prisma: PrismaService,
     private readonly embeddingsService: EmbeddingsService,
   ) {
+    const apiKey = this.config.get<string>('GEMINI_API_KEY', '');
+    if (!apiKey) {
+      this.logger.warn('GEMINI_API_KEY is not set — AI features will fail at runtime');
+    }
     this.llm = new ChatGoogleGenerativeAI({
-      apiKey: this.config.get<string>('GEMINI_API_KEY', ''),
+      apiKey,
       model: 'gemini-2.0-flash',
       temperature: 0.3,
       maxOutputTokens: 512,
@@ -81,9 +85,10 @@ export class AiService {
     // 4. 業種別プロンプト選択
     const { systemPrompt, humanTemplate } = this.selectPrompt(industry);
 
-    // 5. プロンプト変数展開
+    // 5. プロンプト変数展開 (安全なリテラル置換)
+    const safeShopName = shopName.replace(/[{}]/g, '');
     const systemContent = systemPrompt
-      .replace('{shopName}', shopName)
+      .replace('{shopName}', safeShopName)
       .replace('{faqContext}', faqContext || 'FAQ情報なし');
 
     const humanContent = humanTemplate.replace('{question}', question);
@@ -112,10 +117,12 @@ export class AiService {
       tokensUsed = (result.response_metadata?.usageMetadata as { totalTokenCount?: number } | undefined)?.totalTokenCount;
     } catch (error) {
       this.logger.error(`LLM呼び出しエラー: ${error instanceof Error ? error.message : String(error)}`);
-      // フォールバック: FAQから直接回答
-      answer = matchedFaqs[0]
-        ? matchedFaqs[0].answer
-        : 'ただいまシステムに問題が発生しています。スタッフにお問い合わせください。';
+      // フォールバック: FAQから直接回答（空や不正な内容は除外）
+      const fallbackAnswer = matchedFaqs[0]?.answer;
+      answer =
+        typeof fallbackAnswer === 'string' && fallbackAnswer.trim().length > 0
+          ? fallbackAnswer
+          : 'ただいまシステムに問題が発生しています。スタッフにお問い合わせください。';
     }
 
     // 8. 信頼度スコア算出
@@ -248,7 +255,7 @@ export class AiService {
     confidence: number,
   ): { shouldEscalate: boolean; escalationReason?: string } {
     // キーワードチェック
-    const allText = `${question} ${answer}`.toLowerCase();
+    const allText = `${question} ${answer}`;
     const matchedKeyword = ESCALATION_KEYWORDS.find((k) => allText.includes(k));
     if (matchedKeyword) {
       return {

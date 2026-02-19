@@ -11,27 +11,22 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
+import { validate } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
 import { AiService, ChatMessage as AiChatMessage } from '../ai/ai.service';
 import { ChatService } from './chat.service';
-
-interface StartChatPayload {
-  tenantId: string;
-  customerId?: string;
-  channel?: 'web' | 'line' | 'widget';
-}
-
-interface SendMessagePayload {
-  sessionId: string;
-  tenantId: string;
-  content: string;
-}
+import { StartChatDto } from './dto/start-chat.dto';
+import { SendMessageDto } from './dto/send-message.dto';
 
 interface ClientSession {
   sessionId: string;
   tenantId: string;
   history: AiChatMessage[];
 }
+
+/** Maximum number of messages to keep in per-client in-memory history */
+const MAX_HISTORY_SIZE = 20;
 
 @WebSocketGateway({
   cors: {
@@ -47,6 +42,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(ChatGateway.name);
 
   // クライアントID → セッション情報のマップ
+  // NOTE:
+  // - This map is stored only in process memory and is not shared across instances.
+  // - All session data stored here will be lost if the server restarts or crashes.
+  // - For production use, consider replacing this with a persistent or shared store
+  //   (e.g., Redis or a database) or redesigning the gateway to use stateless
+  //   session management that can recover state from the backend on reconnection.
   private readonly sessions = new Map<string, ClientSession>();
 
   constructor(
@@ -79,18 +80,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('chat:start')
   async handleChatStart(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: StartChatPayload,
+    @MessageBody() payload: StartChatDto,
   ) {
     try {
+      // DTO バリデーション
+      const dto = plainToInstance(StartChatDto, payload);
+      const errors = await validate(dto);
+      if (errors.length > 0) {
+        client.emit('chat:error', {
+          message: '入力データが不正です。tenantId を確認してください。',
+        });
+        return;
+      }
+
       const session = await this.chatService.createSession({
-        tenantId: payload.tenantId,
-        customerId: payload.customerId,
-        channel: payload.channel ?? 'web',
+        tenantId: dto.tenantId,
+        customerId: dto.customerId,
+        channel: dto.channel ?? 'web',
       });
 
       this.sessions.set(client.id, {
         sessionId: session.id,
-        tenantId: payload.tenantId,
+        tenantId: dto.tenantId,
         history: [],
       });
 
@@ -101,9 +112,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.logger.log(`Chat started: ${session.id} (client: ${client.id})`);
     } catch (error) {
-      client.emit('chat:error', {
-        message: 'チャットの開始に失敗しました',
-      });
+      this.logger.error(
+        `Failed to start chat for tenant ${payload?.tenantId} (client: ${client.id})`,
+        error instanceof Error ? error.stack : String(error),
+      );
+
+      let userMessage = 'チャットの開始に失敗しました';
+      if (error instanceof Error && typeof error.message === 'string') {
+        const msg = error.message;
+        if (/tenant/i.test(msg) || /テナント/.test(msg)) {
+          userMessage = 'テナントが見つかりません。店舗コードを確認してください。';
+        } else if (
+          /ECONNREFUSED/i.test(msg) ||
+          /database/i.test(msg) ||
+          /\bDB\b/i.test(msg) ||
+          /接続/.test(msg)
+        ) {
+          userMessage =
+            'システムエラーによりチャットを開始できません。しばらくしてから再度お試しください。';
+        }
+      }
+
+      client.emit('chat:error', { message: userMessage });
     }
   }
 
@@ -113,11 +143,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('chat:message')
   async handleMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: SendMessagePayload,
+    @MessageBody() payload: SendMessageDto,
   ) {
     const clientSession = this.sessions.get(client.id);
     if (!clientSession) {
       client.emit('chat:error', { message: 'セッションが見つかりません。chat:start を先に呼び出してください。' });
+      return;
+    }
+
+    // DTO バリデーション
+    const dto = plainToInstance(SendMessageDto, payload);
+    const errors = await validate(dto);
+    if (errors.length > 0) {
+      client.emit('chat:error', {
+        message: 'メッセージの形式が不正です。',
+      });
       return;
     }
 
@@ -128,11 +168,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       await this.chatService.saveMessage({
         sessionId,
         role: 'user',
-        content: payload.content,
+        content: dto.content,
       });
 
-      // 会話履歴に追加
-      history.push({ role: 'user', content: payload.content });
+      // 会話履歴に追加 (スライディングウィンドウで上限を維持)
+      history.push({ role: 'user', content: dto.content });
+      if (history.length > MAX_HISTORY_SIZE) {
+        history.splice(0, history.length - MAX_HISTORY_SIZE);
+      }
 
       // タイピングインジケーター
       client.emit('chat:typing', { isTyping: true });
@@ -140,7 +183,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // AI 応答生成
       const aiResponse = await this.aiService.generateResponse(
         tenantId,
-        payload.content,
+        dto.content,
         history.slice(-8),
       );
 
@@ -158,8 +201,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         tokens: aiResponse.tokensUsed,
       });
 
-      // 会話履歴に追加
+      // 会話履歴に追加 (スライディングウィンドウで上限を維持)
       history.push({ role: 'assistant', content: aiResponse.answer });
+      if (history.length > MAX_HISTORY_SIZE) {
+        history.splice(0, history.length - MAX_HISTORY_SIZE);
+      }
 
       // タイピング終了
       client.emit('chat:typing', { isTyping: false });
