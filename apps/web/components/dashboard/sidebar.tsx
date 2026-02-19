@@ -10,7 +10,9 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { href: '/dashboard', label: 'ダッシュボード', icon: '📊' },
   { href: '/dashboard/faqs', label: 'FAQ管理', icon: '❓' },
+  { href: '/dashboard/chat', label: 'チャットプレビュー', icon: '💬' },
   { href: '/dashboard/analytics', label: 'アナリティクス', icon: '📈' },
+  { href: '/dashboard/embed', label: '埋め込みコード', icon: '🔌' },
   { href: '/dashboard/settings', label: '設定', icon: '⚙️' },
 ];
 

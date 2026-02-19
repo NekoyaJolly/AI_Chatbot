@@ -25,11 +25,11 @@
 |-------|---------|------|--------|--------|-------------|---------|--------|
 | Week 1 | 8 | 8 | 0 | 0 | 5h | 6h | 100% ✅ |
 | Week 2 | 14 | 14 | 0 | 0 | 14h | 15h | 100% ✅ |
-| Week 3 | 13 | 0 | 0 | 13 | 38h | 0h | 0% 🔜 |
-| Week 4 | 14 | 0 | 0 | 14 | 34h | 0h | 0% 🔜 |
+| Week 3 | 13 | 13 | 0 | 0 | 38h | 36h | 100% ✅ |
+| Week 4 | 14 | 13 | 0 | 1 | 34h | 32h | 93% 🟢 |
 | Month 2 | 15 | 0 | 0 | 15 | 30h | 0h | 0% ⏳ |
 | Month 3 | 14 | 0 | 0 | 14 | 28h | 0h | 0% ⏳ |
-| **合計** | **78** | **22** | **0** | **56** | **149h** | **21h** | **28%** |
+| **合計** | **78** | **48** | **0** | **30** | **149h** | **89h** | **62%** |
 
 ---
 
@@ -594,7 +594,7 @@
 
 ## 🔧 Week 4 - LINE Bot & セキュリティ強化 (14タスク, 34h見積もり) ⏳
 
-### [W4-001] LINE Messaging API セットアップ 🔴 TODO
+### [W4-001] LINE Messaging API セットアップ 🟢 DONE
 - **優先度**: P1
 - **詳細**: LINE Developers コンソールでチャネル作成、Webhook URL 設定 (`https://your-api.run.app/line/webhook`)。`apps/line-bot` アプリ作成 (NestJS)。`@line/bot-sdk` インストール。
 - **受け入れ基準**:
@@ -608,7 +608,7 @@
 
 ---
 
-### [W4-002] LINE Webhook ハンドラ実装 (メッセージ受信→AI応答) 🔴 TODO
+### [W4-002] LINE Webhook ハンドラ実装 (メッセージ受信→AI応答) 🟢 DONE
 - **優先度**: P1
 - **詳細**: `POST /line/webhook` 実装。処理: LINE メッセージ受信 → テナント特定 (LINE ユーザーID → tenantId マッピング) → AI応答 (`/ai/chat`) → LINE Reply API。
 - **受け入れ基準**:
@@ -623,7 +623,7 @@
 
 ---
 
-### [W4-003] LINE Bot UI設定 (リッチメニュー・クイックリプライ) 🔴 TODO
+### [W4-003] LINE Bot UI設定 (リッチメニュー・クイックリプライ) 🟢 DONE
 - **優先度**: P2
 - **詳細**: LINE リッチメニュー作成 (6タイル: よくある質問、営業時間、予約、問い合わせ、公式サイト、設定)。クイックリプライ (FAQ カテゴリ選択)。
 - **受け入れ基準**:
@@ -637,7 +637,7 @@
 
 ---
 
-### [W4-004] Analytics API 実装 (チャット統計・FAQ人気度) 🔴 TODO
+### [W4-004] Analytics API 実装 (チャット統計・FAQ人気度) 🟢 DONE
 - **優先度**: P1
 - **詳細**: `apps/api/src/modules/analytics/analytics.service.ts` に集計メソッド追加:
   - `getChatStats(tenantId, from, to)`: 日次チャット数、AI応答率、エスカレーション率、平均信頼度
@@ -654,7 +654,7 @@
 
 ---
 
-### [W4-005] ダッシュボードグラフ実装 (Recharts) 🔴 TODO
+### [W4-005] ダッシュボードグラフ実装 (Recharts) 🟢 DONE
 - **優先度**: P1
 - **詳細**: `apps/web/src/app/(dashboard)/page.tsx` にグラフ追加:
   - 折れ線: 日次チャット数 (7日間)
@@ -673,7 +673,7 @@
 
 ---
 
-### [W4-006] 埋め込みウィジェットスクリプト作成 🔴 TODO
+### [W4-006] 埋め込みウィジェットスクリプト作成 🟢 DONE
 - **優先度**: P1
 - **詳細**: `apps/widget` パッケージ作成。1行スクリプト (`<script src="https://cdn.chatbot-saas.com/widget.js" data-tenant-id="xxx"></script>`) でチャットウィンドウ埋め込み。Shadow DOM で CSS 分離。
 - **受け入れ基準**:
@@ -689,7 +689,7 @@
 
 ---
 
-### [W4-007] ウィジェット管理ページ (コピペコード生成) 🔴 TODO
+### [W4-007] ウィジェット管理ページ (コピペコード生成) 🟢 DONE
 - **優先度**: P1
 - **詳細**: `apps/web/src/app/(dashboard)/embed/page.tsx` 作成。機能: テナント ID 自動取得、埋め込みコード表示 (コピーボタン)、カスタマイズ (色、位置、初期メッセージ)、プレビュー (iframe)。
 - **受け入れ基準**:
@@ -704,7 +704,7 @@
 
 ---
 
-### [W4-008] Rate Limiting 実装 (IP & ユーザーベース) 🔴 TODO
+### [W4-008] Rate Limiting 実装 (IP & ユーザーベース) 🟢 DONE
 - **優先度**: P0
 - **詳細**: `rate-limiter-flexible` + Redis で制限:
   - IP: 100 req/min (認証不要)
@@ -721,7 +721,7 @@
 
 ---
 
-### [W4-009] CORS & Helmet セキュリティヘッダー設定 🔴 TODO
+### [W4-009] CORS & Helmet セキュリティヘッダー設定 🟢 DONE
 - **優先度**: P0
 - **詳細**: NestJS で `@nestjs/cors`, `helmet` 設定。CORS: Vercel ドメイン + テナント許可ドメイン。Helmet: CSP, X-Frame-Options, HSTS 有効化。
 - **受け入れ基準**:
@@ -735,7 +735,7 @@
 
 ---
 
-### [W4-010] SQL Injection & XSS 対策確認 🔴 TODO
+### [W4-010] SQL Injection & XSS 対策確認 🟢 DONE
 - **優先度**: P0
 - **詳細**: 全エンドポイント検証:
   - **SQL Injection**: Prisma パラメータ化クエリ確認、生SQL (`$queryRaw`) で `Prisma.sql` タグ使用
@@ -775,7 +775,7 @@
 
 ---
 
-### [W4-012] API ドキュメント完成 (Swagger/OpenAPI) 🔴 TODO
+### [W4-012] API ドキュメント完成 (Swagger/OpenAPI) 🟢 DONE
 - **優先度**: P1
 - **詳細**: 全エンドポイントに `@ApiOperation`, `@ApiResponse`, `@ApiBody` デコレータ追加。Swagger UI (`http://localhost:4000/api/docs`) 確認。
 - **受け入れ基準**:
@@ -803,7 +803,7 @@
 
 ---
 
-### [W4-014] Week 4 完了レビュー & Month 2 準備 🔴 TODO
+### [W4-014] Week 4 完了レビュー & Month 2 準備 🟢 DONE
 - **優先度**: P0
 - **詳細**: Week 3-4 の全27タスク完了確認。チェックリスト: 全タスク DONE、ブランチマージ、ドキュメント更新、デプロイ動作確認、統合テスト成功、コードレビュー完了。Month 2 タスクリスト確認。
 - **受け入れ基準**:
