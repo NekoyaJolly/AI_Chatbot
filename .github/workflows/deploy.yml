@@ -1,0 +1,153 @@
+name: CD - Deploy to GCP Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'apps/line-bot/**'
+      - 'packages/**'
+      - 'infra/terraform/**'
+
+env:
+  PROJECT_ID: ai-chatbot-487823
+  PROJECT_NUMBER: '82198452334'
+  REGION: asia-northeast1
+  REGISTRY: asia-northeast1-docker.pkg.dev
+  REPOSITORY: ai-chatbot
+  NODE_VERSION: '22'
+  PNPM_VERSION: '10.4.0'
+
+jobs:
+  # ─── Workload Identity Federation 認証 ───────────────────────────────────────
+  build-and-deploy:
+    name: Build & Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write     # WIF 用
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ─── GCP 認証 (Workload Identity Federation) ─────────────────────────────
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: >-
+            projects/${{ env.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: ai-chatbot-deployer@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
+
+      # ─── pnpm セットアップ ────────────────────────────────────────────────────
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ─── Docker ビルド & プッシュ: API ────────────────────────────────────────
+      - name: Build & Push API image
+        id: build-api
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/api"
+          TAG="${IMAGE}:${{ github.sha }}"
+          LATEST="${IMAGE}:latest"
+
+          docker build \
+            --file apps/api/Dockerfile \
+            --tag "${TAG}" \
+            --tag "${LATEST}" \
+            --cache-from "${LATEST}" \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
+            .
+
+          docker push "${TAG}"
+          docker push "${LATEST}"
+          echo "image=${TAG}" >> "$GITHUB_OUTPUT"
+
+      # ─── Docker ビルド & プッシュ: LINE Bot ──────────────────────────────────
+      - name: Build & Push LINE Bot image
+        id: build-line-bot
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/line-bot"
+          TAG="${IMAGE}:${{ github.sha }}"
+          LATEST="${IMAGE}:latest"
+
+          docker build \
+            --file apps/line-bot/Dockerfile \
+            --tag "${TAG}" \
+            --tag "${LATEST}" \
+            --cache-from "${LATEST}" \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
+            .
+
+          docker push "${TAG}"
+          docker push "${LATEST}"
+          echo "image=${TAG}" >> "$GITHUB_OUTPUT"
+
+      # ─── Cloud Run デプロイ: API ──────────────────────────────────────────────
+      - name: Deploy API to Cloud Run
+        id: deploy-api
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ai-chatbot-api
+          region: ${{ env.REGION }}
+          image: ${{ steps.build-api.outputs.image }}
+          flags: |
+            --min-instances=0
+            --max-instances=10
+            --memory=512Mi
+            --cpu=1
+            --timeout=60
+            --concurrency=80
+            --set-secrets=DATABASE_URL=DATABASE_URL:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,JWT_SECRET=JWT_SECRET:latest,INTERNAL_API_SECRET=INTERNAL_API_SECRET:latest
+          env_vars: |
+            NODE_ENV=production
+            FRONTEND_URL=https://ai-chatbot.vercel.app
+
+      # ─── Cloud Run デプロイ: LINE Bot ─────────────────────────────────────────
+      - name: Deploy LINE Bot to Cloud Run
+        id: deploy-line-bot
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ai-chatbot-line-bot
+          region: ${{ env.REGION }}
+          image: ${{ steps.build-line-bot.outputs.image }}
+          flags: |
+            --min-instances=0
+            --max-instances=5
+            --memory=256Mi
+            --cpu=1
+            --timeout=30
+            --concurrency=50
+            --set-secrets=LINE_CHANNEL_SECRET=LINE_CHANNEL_SECRET:latest,LINE_CHANNEL_ACCESS_TOKEN=LINE_CHANNEL_ACCESS_TOKEN:latest,INTERNAL_API_SECRET=INTERNAL_API_SECRET:latest
+          env_vars: |
+            NODE_ENV=production
+
+      # ─── デプロイ結果をサマリーに出力 ─────────────────────────────────────────
+      - name: Deployment Summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | URL |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| API | ${{ steps.deploy-api.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| LINE Bot | ${{ steps.deploy-line-bot.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
