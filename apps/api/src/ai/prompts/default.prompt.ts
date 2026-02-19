@@ -26,21 +26,3 @@ export const DEFAULT_HUMAN_TEMPLATE = `お客様のご質問: {question}
 
 上記の情報を参考に、アシスタントとして回答してください。`;
 
-/**
- * 業種コードからプロンプトテンプレートを取得
- */
-export function getPromptByIndustry(industry: string): {
-  systemPrompt: string;
-  humanTemplate: string;
-} {
-  // 動的インポートを避けるため同期的に返す
-  switch (industry) {
-    case 'pet_shop':
-    case 'veterinary':
-    case 'beauty_salon':
-      // 呼び出し側で業種別プロンプトをimport
-      return { systemPrompt: DEFAULT_SYSTEM_PROMPT, humanTemplate: DEFAULT_HUMAN_TEMPLATE };
-    default:
-      return { systemPrompt: DEFAULT_SYSTEM_PROMPT, humanTemplate: DEFAULT_HUMAN_TEMPLATE };
-  }
-}

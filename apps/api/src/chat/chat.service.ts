@@ -10,12 +10,19 @@ export interface CreateSessionOptions {
   channel: 'web' | 'line' | 'widget';
 }
 
+export interface ChatMessageMetadata {
+  confidence?: number;
+  shouldEscalate?: boolean;
+  matchedFaqCount?: number;
+  responseTimeMs?: number;
+  [key: string]: unknown;
+}
+
 export interface SaveMessageOptions {
   sessionId: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata?: any;
+  metadata?: ChatMessageMetadata;
   tokens?: number;
 }
 
